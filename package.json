@@ -1,12 +1,15 @@
 {
-  "name": "tire-storage-reservation-system",
+  "name": "tirestorageservice",
   "version": "1.0.0",
   "description": "タイヤ保管予約システム",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "init-db": "node database/init.js"
+  },
+    "engines": {
+    "node": ">=14.0.0"
   },
   "keywords": [
     "tire",
