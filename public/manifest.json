@@ -1,0 +1,36 @@
+{
+  "name": "タイヤ保管予約管理システム",
+  "short_name": "予約管理",
+  "description": "タイヤ保管サービスの予約管理システム",
+  "start_url": "/admin-login.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#06C755",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "予約カレンダー",
+      "url": "/admin-calendar.html",
+      "description": "予約状況をカレンダーで確認"
+    },
+    {
+      "name": "予約一覧",
+      "url": "/admin-reservations-list.html", 
+      "description": "全予約の一覧表示"
+    }
+  ]
+}

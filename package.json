@@ -6,9 +6,10 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "init-db": "node database/init.js"
+    "init-db": "node database/clean_migration.js",
+    "postinstall": "npm run init-db"
   },
-    "engines": {
+  "engines": {
     "node": ">=14.0.0"
   },
   "keywords": [

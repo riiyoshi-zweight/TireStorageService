@@ -1,6 +1,16 @@
 // database/clean_migration.js - クリーンマイグレーション
 
 const database = require('./connection');
+const crypto = require('crypto');
+
+/**
+ * パスワードのハッシュ化
+ * @param {string} password - プレーンテキストのパスワード
+ * @returns {string} ハッシュ化されたパスワード
+ */
+function hashPassword(password) {
+    return crypto.createHash('sha256').update(password).digest('hex');
+}
 
 /**
  * データベースのクリーンマイグレーションを実行
@@ -39,10 +49,13 @@ async function cleanMigration() {
         // 4. 初期設定データ挿入
         await insertDefaultSettings();
         
-        // 5. 外部キー制約を再有効化
+        // 5. 管理者データ挿入（追加）
+        await insertDefaultAdmin();
+        
+        // 6. 外部キー制約を再有効化
         await database.run('PRAGMA foreign_keys = ON');
         
-        // 6. テーブル構造確認
+        // 7. テーブル構造確認
         const tableInfo = await database.all(`PRAGMA table_info(reservations)`);
         const hasNotesColumn = tableInfo.some(col => col.name === 'notes');
         
@@ -50,6 +63,7 @@ async function cleanMigration() {
             throw new Error('notesカラムが残っています');
         }
         
+        console.log('✅ データベースの初期化が完了しました');
         return true;
         
     } catch (error) {
@@ -171,6 +185,46 @@ async function insertDefaultSettings() {
 }
 
 /**
+ * デフォルト管理者を挿入（新規追加）
+ * @returns {Promise<void>}
+ */
+async function insertDefaultAdmin() {
+    const now = new Date().toISOString();
+    
+    // デフォルト管理者情報
+    const defaultAdmin = {
+        username: 'Administrator',
+        password: 'Mente0444'
+    };
+    
+    try {
+        // 既存の管理者をチェック
+        const existing = await database.get(
+            'SELECT manager_id FROM manager_list WHERE username = ?',
+            [defaultAdmin.username]
+        );
+        
+        if (!existing) {
+            const managerId = `manager_${Date.now()}`;
+            const passwordHash = hashPassword(defaultAdmin.password);
+            
+            await database.run(`
+                INSERT INTO manager_list 
+                (manager_id, username, password_hash, created_at, updated_at, is_active)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `, [managerId, defaultAdmin.username, passwordHash, now, now, 1]);
+            
+            console.log('✅ デフォルト管理者を作成しました: Administrator');
+        } else {
+            console.log('ℹ️ 管理者は既に存在します: Administrator');
+        }
+        
+    } catch (error) {
+        console.error('管理者作成エラー:', error);
+    }
+}
+
+/**
  * 予約データのバリデーション
  * @param {Object} data - バリデーション対象のデータ
  * @returns {Object} バリデーション結果
@@ -192,6 +246,19 @@ function validateReservationData(data) {
         isValid: errors.length === 0,
         errors: errors
     };
+}
+
+// 直接実行時は初期化を実行
+if (require.main === module) {
+    cleanMigration().then(success => {
+        if (success) {
+            console.log('✅ データベース初期化完了');
+            process.exit(0);
+        } else {
+            console.error('❌ データベース初期化失敗');
+            process.exit(1);
+        }
+    });
 }
 
 module.exports = { 
