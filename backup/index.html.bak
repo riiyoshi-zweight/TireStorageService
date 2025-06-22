@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>タイヤ保管予約</title>
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #0cc0df;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .week-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .nav-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-button:disabled {
+            color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .week-display {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .reservation-table {
+            flex: 1;
+            margin: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            position: relative;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        .table-header {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .table-header th {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+            border-right: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+
+        .table-header th:first-child {
+            width: 80px;
+            background: #f8f9fa;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            border-right: 2px solid #e9ecef;
+        }
+
+        .table-header th:last-child {
+            border-right: none;
+        }
+
+        .time-column {
+            width: 80px;
+            background: #fff;
+            text-align: center;
+            padding: 12px 6px;
+            font-weight: 600;
+            color: #333;
+            border-right: 2px solid #e9ecef;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+
+        .slot-cell {
+            text-align: center;
+            padding: 15px 8px;
+            border-right: 1px solid #e9ecef;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+
+        .slot-cell:last-child {
+            border-right: none;
+        }
+
+        .slot-cell.available {
+            background: #fff;
+        }
+
+        .slot-cell.available:hover {
+            background: #e3f2fd;
+        }
+
+        .slot-cell.unavailable {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .slot-cell.past {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .slot-cell.selected {
+            background: #e3f2fd;
+            border: 2px solid #0cc0df;
+        }
+
+        .slot-symbol {
+            font-size: 20px;
+            display: block;
+        }
+
+        .available .slot-symbol {
+            color: #0cc0df;
+        }
+
+        .unavailable .slot-symbol,
+        .past .slot-symbol {
+            color: #ccc;
+        }
+
+        .footer {
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        }
+
+        .selection-info {
+            text-align: left;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .selection-status {
+            background: #0cc0df;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 15px;
+            white-space: nowrap;
+        }
+
+        .selection-datetime {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .reserve-button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reserve-button:disabled {
+            background: #ccc;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .reserve-button.loading {
+            background: #0ab5d1;
+            color: white;
+            position: relative;
+        }
+
+        .reserve-button.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            margin: auto;
+            border: 2px solid transparent;
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 1s ease infinite;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        @keyframes spin {
+            0% { transform: translateY(-50%) rotate(0deg); }
+            100% { transform: translateY(-50%) rotate(360deg); }
+        }
+
+        .reserve-button:enabled {
+            background: #0cc0df;
+            color: white;
+        }
+
+        .reserve-button:enabled:hover {
+            background: #0ab5d1;
+            transform: translateY(-1px);
+        }
+
+        /* モーダル */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 300px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .modal-datetime {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0cc0df;
+            margin: 15px 0;
+        }
+
+        .modal-button {
+            width: 100%;
+            padding: 12px;
+            background: #0cc0df;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .modal-button:hover {
+            background: #0ab5d1;
+        }
+
+        .modal-button.cancel {
+            background: #ccc;
+            color: white;
+            margin-top: 8px;
+        }
+
+        .modal-button.cancel:hover {
+            background: #bbb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* 顧客登録フォーム */
+        .customer-form {
+            margin: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #0cc0df;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+
+        /* 電話番号入力スタイル */
+        .phone-input-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .phone-input-container input {
+            width: 80px;
+            text-align: center;
+            font-family: monospace;
+        }
+
+        .phone-separator {
+            font-weight: bold;
+            color: #333;
+            user-select: none;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 18px;
+            }
+            
+            .week-display {
+                font-size: 16px;
+            }
+            
+            .nav-button {
+                font-size: 20px;
+            }
+            
+            .reservation-table,
+            .customer-form {
+                margin: 10px;
+            }
+            
+            .table-header th,
+            .time-column,
+            .slot-cell {
+                padding: 8px 4px;
+                font-size: 12px;
+            }
+            
+            .slot-symbol {
+                font-size: 16px;
+            }
+
+            .selection-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .selection-status {
+                margin-bottom: 8px;
+                margin-right: 0;
+            }
+
+            .table-header th:first-child,
+            .time-column {
+                font-size: 11px;
+                padding: 8px 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>まるごとおまかせタイヤ保管</h1>
+        <div class="week-navigation" id="weekNav" style="display: none;">
+            <button class="nav-button" id="prevWeek" disabled>‹</button>
+            <div class="week-display" id="weekDisplay"></div>
+            <button class="nav-button" id="nextWeek">›</button>
+        </div>
+    </div>
+
+    <!-- 顧客登録フォーム -->
+    <div class="customer-form hidden" id="customerForm">
+        <h2>お客様情報を入力してください</h2>
+        <p>初回のご利用のため、お客様情報の登録が必要です。</p>
+        
+        <div class="form-group">
+            <label for="customerName">お名前 *</label>
+            <input type="text" id="customerName" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="customerPhone1">電話番号 *</label>
+            <div class="phone-input-container">
+                <input type="text" id="customerPhone1" maxlength="4" placeholder="090" required>
+                <span class="phone-separator">-</span>
+                <input type="text" id="customerPhone2" maxlength="4" placeholder="1234" required>
+                <span class="phone-separator">-</span>
+                <input type="text" id="customerPhone3" maxlength="4" placeholder="5678" required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="carModel">車種 *</label>
+            <input type="text" id="carModel" placeholder="例: トヨタ プリウス" required>
+        </div>
+        
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox" id="isLightVehicle">
+                <label for="isLightVehicle">軽自動車</label>
+            </div>
+        </div>
+        
+        <button class="reserve-button" id="registerButton">登録して予約に進む</button>
+    </div>
+
+    <!-- 予約テーブル -->
+    <div class="reservation-table hidden" id="reservationTable">
+        <div class="table-container">
+            <table>
+                <thead class="table-header">
+                    <tr id="dateHeader">
+                        <th>時間</th>
+                        <!-- 日付ヘッダーはJavaScriptで生成 -->
+                    </tr>
+                </thead>
+                <tbody id="timeSlots">
+                    <!-- 時間スロットはJavaScriptで生成 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer hidden" id="footerSection">
+        <div class="selection-info">
+            <div class="selection-status" id="selectionStatus">未選択</div>
+            <div class="selection-datetime" id="selectionDatetime">予約する日を選択してください。</div>
+        </div>
+        <button class="reserve-button" id="reserveButton" disabled>予約</button>
+    </div>
+
+    <!-- 確認モーダル -->
+    <div class="modal-overlay hidden" id="confirmModal">
+        <div class="modal">
+            <h3>予約を確定します。</h3>
+            <p>以下の日程でお間違えがないかご確認の上、予約を確定してください。</p>
+            <div class="modal-datetime" id="confirmDatetime"></div>
+            <button class="modal-button" id="confirmButton">確定</button>
+            <button class="modal-button cancel" id="cancelButton">キャンセル</button>
+        </div>
+    </div>
+
+    <script>
+        let liff;
+        let currentWeekStart = new Date();
+        let selectedSlot = null;
+        let businessSettings = {};
+        let availableDates = [];
+        let currentUserId = null;
+        let isCustomerRegistered = false;
+
+        // APIのベースURL
+        const API_BASE = window.location.origin;
+
+        // 時間をリセットして日付のみにする
+        function resetTime(date) {
+            date.setHours(0, 0, 0, 0);
+            return date;
+        }
+
+        // 週の開始日を取得（当日から7日間）
+        function getWeekStart(date) {
+            const d = new Date(date);
+            return resetTime(d);
+        }
+
+        // LIFF初期化
+        async function initializeLiff() {
+            try {
+                console.log('LIFF initialization starting...');
+                
+                if (typeof liff === 'undefined') {
+                    throw new Error('LIFF SDK not loaded');
+                }
+                
+                await liff.init({
+                    liffId: "2007549033-wxvk1WQY"
+                });
+
+                if (!liff.isLoggedIn()) {
+                    console.log('User not logged in, redirecting to login...');
+                    liff.login();
+                    return;
+                }
+
+                // プロファイル取得
+                try {
+                    const profile = await liff.getProfile();
+                    currentUserId = profile.userId;
+                } catch (profileError) {
+                    console.log('Failed to get profile, trying context:', profileError);
+                    const context = liff.getContext();
+                    currentUserId = context.userId;
+                }
+
+                console.log('LIFF initialized successfully, User ID:', currentUserId);
+                
+                // 顧客登録確認
+                await checkCustomerRegistration();
+
+            } catch (error) {
+                console.log('LIFF initialization failed:', error.message);
+                
+                // LIFF失敗時はデモモードで動作
+                currentUserId = 'demo_user_' + Date.now();
+                isCustomerRegistered = false;
+                console.log('🚀 Running in demo mode, User ID:', currentUserId);
+                
+                showCustomerForm();
+            }
+        }
+
+        // 顧客登録確認
+        async function checkCustomerRegistration() {
+            try {
+                console.log('Checking customer registration for:', currentUserId);
+                
+                const response = await fetch(`${API_BASE}/api/customers/check/${currentUserId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('Customer check result:', result);
+                
+                isCustomerRegistered = result.exists;
+                
+                if (!isCustomerRegistered) {
+                    console.log('Customer not registered, showing registration form');
+                    showCustomerForm();
+                } else {
+                    console.log('Customer already registered:', result.customer);
+                    hideCustomerForm();
+                    await initializeData();
+                }
+                
+            } catch (error) {
+                console.error('Failed to check customer registration:', error);
+                console.log('Error occurred, showing registration form as fallback');
+                isCustomerRegistered = false;
+                showCustomerForm();
+            }
+        }
+
+        // 顧客登録フォーム表示
+        function showCustomerForm() {
+            console.log('Showing customer registration form');
+            document.getElementById('customerForm').classList.remove('hidden');
+            document.getElementById('reservationTable').classList.add('hidden');
+            document.getElementById('weekNav').style.display = 'none';
+            document.getElementById('footerSection').classList.add('hidden');
+        }
+
+        // 顧客登録フォーム非表示
+        function hideCustomerForm() {
+            console.log('Hiding customer registration form');
+            document.getElementById('customerForm').classList.add('hidden');
+            document.getElementById('reservationTable').classList.remove('hidden');
+            document.getElementById('weekNav').style.display = 'flex';
+            document.getElementById('footerSection').classList.remove('hidden');
+        }
+
+        // 顧客登録
+        async function registerCustomer() {
+            const name = document.getElementById('customerName').value.trim();
+            const phone1 = document.getElementById('customerPhone1').value.trim();
+            const phone2 = document.getElementById('customerPhone2').value.trim();
+            const phone3 = document.getElementById('customerPhone3').value.trim();
+            const carModel = document.getElementById('carModel').value.trim();
+            const isLightVehicle = document.getElementById('isLightVehicle').checked;
+
+            const phone = `${phone1}-${phone2}-${phone3}`;
+
+            if (!name || !phone1 || !phone2 || !phone3 || !carModel) {
+                alert('必須項目をすべて入力してください。');
+                return;
+            }
+
+            const phonePattern = /^\d{3,4}-\d{2,4}-\d{4}$/;
+            if (!phonePattern.test(phone)) {
+                alert('電話番号の形式が正しくありません。');
+                return;
+            }
+
+            const registerButton = document.getElementById('registerButton');
+            const originalText = registerButton.textContent;
+            registerButton.disabled = true;
+            registerButton.textContent = '登録中...';
+
+            try {
+                console.log('Registering customer...');
+                
+                const customerData = {
+                    name: name,
+                    phone: phone,
+                    vehicle_type: carModel,
+                    is_light_vehicle: isLightVehicle,
+                    line_user_id: currentUserId
+                };
+
+                console.log('Sending customer data:', customerData);
+
+                const response = await fetch(`${API_BASE}/api/customers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(customerData)
+                });
+
+                console.log('Response status:', response.status);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Customer registration successful:', result);
+                    
+                    isCustomerRegistered = true;
+                    hideCustomerForm();
+                    await initializeData();
+                    alert('お客様情報の登録が完了しました！');
+                } else {
+                    const errorData = await response.json();
+                    console.error('Registration failed:', errorData);
+                    throw new Error(errorData.error || errorData.detail || `登録に失敗しました (HTTP ${response.status})`);
+                }
+
+            } catch (error) {
+                console.error('Customer registration failed:', error);
+                alert(`登録に失敗しました: ${error.message}`);
+            } finally {
+                registerButton.disabled = false;
+                registerButton.textContent = originalText;
+            }
+        }
+
+        // 営業設定を取得
+        async function fetchBusinessSettings() {
+            try {
+                console.log('Fetching business settings...');
+                
+                const response = await fetch(`${API_BASE}/api/available-dates/settings`);
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Business settings API response:', result);
+                    
+                    if (result.success && result.settings) {
+                        businessSettings = {
+                            business_start_time: result.settings.business_hours_start?.value || '09:00',
+                            business_end_time: result.settings.business_hours_end?.value || '18:00',
+                            slot_interval_minutes: parseInt(result.settings.reservation_interval_minutes?.value || '30')
+                        };
+                        
+                        console.log('Business settings loaded:', businessSettings);
+                    } else {
+                        throw new Error('Invalid settings response format');
+                    }
+                } else {
+                    console.error('Failed to fetch business settings, status:', response.status);
+                    businessSettings = {
+                        business_start_time: '09:00',
+                        business_end_time: '18:00',
+                        slot_interval_minutes: 30
+                    };
+                }
+            } catch (error) {
+                console.error('Failed to fetch business settings:', error);
+                businessSettings = {
+                    business_start_time: '09:00',
+                    business_end_time: '18:00',
+                    slot_interval_minutes: 30
+                };
+            }
+        }
+
+        // 予約可能日を取得
+        async function fetchAvailableDates() {
+            try {
+                console.log('Fetching available dates...');
+                
+                const response = await fetch(`${API_BASE}/api/available-dates`);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Available dates API response:', data);
+                    
+                    if (Array.isArray(data)) {
+                        availableDates = data;
+                    } else if (data.success && Array.isArray(data.data)) {
+                        availableDates = data.data;
+                    } else {
+                        availableDates = [];
+                    }
+                    
+                    console.log('Available dates loaded:', availableDates.length, 'slots');
+                } else {
+                    console.error('Failed to fetch available dates, status:', response.status);
+                    availableDates = [];
+                }
+            } catch (error) {
+                console.error('Failed to fetch available dates:', error);
+                availableDates = [];
+            }
+        }
+
+        // 時間スロットを生成
+        function generateTimeSlots() {
+            const slots = [];
+            const startTime = businessSettings.business_start_time || '09:00';
+            const endTime = businessSettings.business_end_time || '18:00';
+            const intervalMinutes = businessSettings.slot_interval_minutes || 30;
+            
+            console.log('Generating time slots with settings:', { startTime, endTime, intervalMinutes });
+            
+            const [startHour, startMinute] = startTime.split(':').map(Number);
+            const [endHour, endMinute] = endTime.split(':').map(Number);
+            
+            let currentTime = new Date();
+            currentTime.setHours(startHour, startMinute, 0, 0);
+            
+            const endTimeObj = new Date();
+            endTimeObj.setHours(endHour, endMinute, 0, 0);
+
+            while (currentTime < endTimeObj) {
+                const timeString = currentTime.toTimeString().slice(0, 5);
+                slots.push(timeString);
+                currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);
+            }
+
+            console.log('Generated time slots:', slots);
+            return slots;
+        }
+
+        // 週表示を更新
+        function updateWeekDisplay() {
+            console.log('Updating week display for:', currentWeekStart);
+            
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            
+            const startStr = `${currentWeekStart.getMonth() + 1}/${currentWeekStart.getDate()}`;
+            const endStr = `${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
+            
+            document.getElementById('weekDisplay').textContent = `${startStr} - ${endStr}`;
+            
+            // 今日より前には戻れない
+            const today = new Date();
+            resetTime(today);
+            
+            document.getElementById('prevWeek').disabled = currentWeekStart <= today;
+            
+            // 3ヶ月先まで制限
+            const maxDate = new Date();
+            maxDate.setMonth(maxDate.getMonth() + 3);
+            
+            document.getElementById('nextWeek').disabled = currentWeekStart >= maxDate;
+        }
+
+        // 日付が予約可能かチェック
+        function isDateAvailable(date, time) {
+            const dateStr = date.toISOString().split('T')[0];
+            const timeStr = time + ':00';
+            
+            console.log('Checking availability for:', dateStr, timeStr);
+            
+            const available = availableDates.find(availableDate => {
+                const availDate = availableDate.available_date;
+                const availTime = availableDate.available_time;
+                const isActive = availableDate.is_active === 1;
+                const hasReservation = availableDate.reservation_id || availableDate.availability_status === 'booked';
+                
+                const match = availDate === dateStr && 
+                             availTime === timeStr && 
+                             isActive && 
+                             !hasReservation;
+                             
+                if (availDate === dateStr && availTime === timeStr) {
+                    console.log('Found slot:', {
+                        date: availDate,
+                        time: availTime,
+                        isActive,
+                        hasReservation,
+                        available: match
+                    });
+                }
+                             
+                return match;
+            });
+            
+            return !!available;
+        }
+
+        // テーブルを生成
+        function generateTable() {
+            const dateHeader = document.getElementById('dateHeader');
+            const timeSlots = document.getElementById('timeSlots');
+            
+            dateHeader.innerHTML = '<th>時間</th>';
+            timeSlots.innerHTML = '';
+
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(date.getDate() + i);
+                weekDates.push(date);
+                
+                const th = document.createElement('th');
+                const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                th.textContent = `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`;
+                dateHeader.appendChild(th);
+            }
+
+            const timeSlotList = generateTimeSlots();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            timeSlotList.forEach(time => {
+                const tr = document.createElement('tr');
+                
+                const timeCell = document.createElement('td');
+                timeCell.className = 'time-column';
+                timeCell.textContent = time;
+                tr.appendChild(timeCell);
+
+                weekDates.forEach((date, dayIndex) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'slot-cell';
+                    
+                    const symbol = document.createElement('span');
+                    symbol.className = 'slot-symbol';
+                    
+                    // 過去の日付チェック
+                    if (date < today) {
+                        cell.classList.add('past');
+                        symbol.textContent = '×';
+                    } else if (isDateAvailable(date, time)) {
+                        cell.classList.add('available');
+                        symbol.textContent = '○';
+                        cell.addEventListener('click', () => selectSlot(date, time, cell));
+                    } else {
+                        cell.classList.add('unavailable');
+                        symbol.textContent = '×';
+                    }
+                    
+                    cell.appendChild(symbol);
+                    tr.appendChild(cell);
+                });
+
+                timeSlots.appendChild(tr);
+            });
+        }
+
+        // スロット選択
+        function selectSlot(date, time, cellElement) {
+            if (!isCustomerRegistered) {
+                alert('まずお客様情報の登録を完了してください。');
+                return;
+            }
+
+            document.querySelectorAll('.slot-cell.selected').forEach(cell => {
+                cell.classList.remove('selected');
+            });
+
+            cellElement.classList.add('selected');
+            selectedSlot = { date, time };
+            updateFooter();
+        }
+
+        // フッター更新
+        function updateFooter() {
+            const statusElement = document.getElementById('selectionStatus');
+            const datetimeElement = document.getElementById('selectionDatetime');
+            const buttonElement = document.getElementById('reserveButton');
+
+            if (selectedSlot) {
+                statusElement.textContent = '選択中';
+                
+                const year = selectedSlot.date.getFullYear();
+                const month = String(selectedSlot.date.getMonth() + 1).padStart(2, '0');
+                const day = String(selectedSlot.date.getDate()).padStart(2, '0');
+                datetimeElement.textContent = `${year}/${month}/${day} ${selectedSlot.time}`;
+                
+                buttonElement.disabled = false;
+                buttonElement.textContent = '予約';
+            } else {
+                statusElement.textContent = '未選択';
+                datetimeElement.textContent = '予約する日を選択してください。';
+                buttonElement.disabled = true;
+                buttonElement.textContent = '予約';
+            }
+        }
+
+        // 予約確認モーダルを表示
+        function showConfirmModal() {
+            if (!selectedSlot || !isCustomerRegistered) return;
+
+            const year = selectedSlot.date.getFullYear();
+            const month = String(selectedSlot.date.getMonth() + 1).padStart(2, '0');
+            const day = String(selectedSlot.date.getDate()).padStart(2, '0');
+            const datetime = `${year}/${month}/${day} ${selectedSlot.time}`;
+
+            document.getElementById('confirmDatetime').textContent = datetime;
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        // モーダルを閉じる
+        function closeModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+        }
+
+        // 予約を確定
+        async function confirmReservation() {
+            if (!selectedSlot || !isCustomerRegistered) return;
+
+            try {
+                // 選択された日時に対応するavailable_date_idを検索
+                const dateStr = selectedSlot.date.toISOString().split('T')[0];
+                const timeStr = selectedSlot.time + ':00';
+                
+                const availableSlot = availableDates.find(slot => {
+                    const availDate = slot.available_date;
+                    const availTime = slot.available_time;
+                    return availDate === dateStr && 
+                           availTime === timeStr && 
+                           slot.is_active === 1 &&
+                           !slot.reservation_id && 
+                           slot.availability_status !== 'booked';
+                });
+                
+                if (!availableSlot) {
+                    throw new Error('選択された時間枠が見つかりません、または既に予約済みです');
+                }
+
+                const reservationData = {
+                    line_user_id: currentUserId,
+                    available_date_id: availableSlot.available_date_id
+                };
+
+                console.log('Creating reservation with data:', reservationData);
+
+                const response = await fetch(`${API_BASE}/api/reservations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(reservationData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Reservation successful:', result);
+                    
+                    closeModal();
+                    alert('予約が完了しました！');
+                    
+                    await fetchAvailableDates();
+                    generateTable();
+                    selectedSlot = null;
+                    updateFooter();
+                    
+                    if (liff && liff.isInClient()) {
+                        liff.closeWindow();
+                    }
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '予約に失敗しました');
+                }
+
+            } catch (error) {
+                console.error('Reservation failed:', error);
+                alert(`予約に失敗しました: ${error.message}`);
+            }
+        }
+
+        // データ初期化
+        async function initializeData() {
+            await Promise.all([
+                fetchBusinessSettings(),
+                fetchAvailableDates()
+            ]);
+
+            updateWeekDisplay();
+            generateTable();
+            updateFooter();
+        }
+
+        // 初期化
+        async function initialize() {
+            // 当日から開始
+            currentWeekStart = resetTime(new Date());
+            
+            await initializeLiff();
+            
+            if (isCustomerRegistered) {
+                await initializeData();
+            }
+        }
+
+        // 電話番号入力フィールドの設定
+        function setupPhoneInputs() {
+            const phoneInputs = [
+                document.getElementById('customerPhone1'),
+                document.getElementById('customerPhone2'),
+                document.getElementById('customerPhone3')
+            ];
+
+            phoneInputs.forEach((input, index) => {
+                if (!input) return;
+
+                // 数字のみ入力制限
+                input.addEventListener('input', function(e) {
+                    this.value = this.value.replace(/\D/g, '');
+                    
+                    const maxLength = index === 0 ? 4 : 4;
+                    if (this.value.length > maxLength) {
+                        this.value = this.value.slice(0, maxLength);
+                    }
+                    
+                    // 自動フォーカス移動
+                    if (this.value.length === maxLength && index < phoneInputs.length - 1) {
+                        phoneInputs[index + 1].focus();
+                    }
+                });
+
+                // キーダウンイベント
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && this.value === '' && index > 0) {
+                        phoneInputs[index - 1].focus();
+                    }
+                });
+
+                // ペースト処理
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    const numbers = pastedText.replace(/\D/g, '');
+                    
+                    if (numbers.length >= 10) {
+                        phoneInputs[0].value = numbers.slice(0, 3);
+                        phoneInputs[1].value = numbers.slice(3, 7);
+                        phoneInputs[2].value = numbers.slice(7, 11);
+                        phoneInputs[2].focus();
+                    } else {
+                        let pos = 0;
+                        for (let i = index; i < phoneInputs.length && pos < numbers.length; i++) {
+                            const fieldLength = 4;
+                            const fillLength = Math.min(fieldLength, numbers.length - pos);
+                            phoneInputs[i].value = numbers.slice(pos, pos + fillLength);
+                            pos += fillLength;
+                        }
+                    }
+                });
+            });
+        }
+
+        // イベントリスナー設定
+        document.addEventListener('DOMContentLoaded', function() {
+            initialize();
+
+            // 顧客登録ボタン
+            document.getElementById('registerButton').addEventListener('click', registerCustomer);
+
+            // 電話番号入力フィールドの設定
+            setupPhoneInputs();
+
+            // 週移動
+            document.getElementById('prevWeek').addEventListener('click', function() {
+                const newDate = new Date(currentWeekStart);
+                newDate.setDate(newDate.getDate() - 7);
+                
+                // 今日より前には戻れない
+                const today = resetTime(new Date());
+                if (newDate >= today) {
+                    currentWeekStart = newDate;
+                    updateWeekDisplay();
+                    if (isCustomerRegistered) {
+                        generateTable();
+                    }
+                    selectedSlot = null;
+                    updateFooter();
+                }
+            });
+
+            document.getElementById('nextWeek').addEventListener('click', function() {
+                const newDate = new Date(currentWeekStart);
+                newDate.setDate(newDate.getDate() + 7);
+                
+                // 3ヶ月先まで制限
+                const maxDate = new Date();
+                maxDate.setMonth(maxDate.getMonth() + 3);
+                if (newDate <= maxDate) {
+                    currentWeekStart = newDate;
+                    updateWeekDisplay();
+                    if (isCustomerRegistered) {
+                        generateTable();
+                    }
+                    selectedSlot = null;
+                    updateFooter();
+                }
+            });
+
+            // 予約ボタン
+            document.getElementById('reserveButton').addEventListener('click', showConfirmModal);
+
+            // 確認ボタン
+            document.getElementById('confirmButton').addEventListener('click', confirmReservation);
+
+            // キャンセルボタン
+            document.getElementById('cancelButton').addEventListener('click', closeModal);
+
+            // モーダル外クリックで閉じる
+            document.getElementById('confirmModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

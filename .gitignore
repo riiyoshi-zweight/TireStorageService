@@ -1,10 +1,44 @@
+# Node modules
 node_modules/
-.env
-*.log
-tire_storage.db*
-backup/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# .gitignoreに以下を追加
+# Database files
 *.db
 *.db-shm
 *.db-wal
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Development tools
+ngrok*
+*.exe
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+temp/
+tmp/
+.cache/
+
+# Build outputs
+dist/
+build/
