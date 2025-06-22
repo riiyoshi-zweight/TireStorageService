@@ -1,32 +1,48 @@
-// database/clean_migration.js - クリーンマイグレーション
+// database/clean_migration.js - クリーンマイグレーション（安全版）
 
 const database = require('./connection');
-const crypto = require('crypto');
-
-/**
- * パスワードのハッシュ化
- * @param {string} password - プレーンテキストのパスワード
- * @returns {string} ハッシュ化されたパスワード
- */
-function hashPassword(password) {
-    return crypto.createHash('sha256').update(password).digest('hex');
-}
+const bcrypt = require('bcrypt');
 
 /**
  * データベースのクリーンマイグレーションを実行
- * reservationsテーブルからnotesカラムを削除し、最適な構造にする
+ * 本番環境では既存データを保護する
  * @returns {Promise<boolean>} 成功時true、失敗時false
  */
 async function cleanMigration() {
     try {
+        console.log('🔍 データベース状態を確認中...');
+        
+        // 重要：既存データの確認
+        const hasExistingData = await checkExistingData();
+        
+        if (hasExistingData) {
+            console.log('✅ 既存のデータが検出されました。データを保護します。');
+            
+            // 必要なテーブルのみ作成（既存データは保持）
+            await createRequiredTables();
+            
+            // 管理者が存在しない場合のみ作成
+            await insertDefaultAdmin();
+            
+            // 設定データの確認と追加
+            await insertDefaultSettings();
+            
+            console.log('✅ 既存データを保持したまま、必要な初期化を完了しました');
+            return true;
+        }
+        
+        // 完全に新規の場合のみ初期化を実行
+        console.log('🔧 新規データベースを初期化中...');
+        
         // 外部キー制約を一時無効化
         await database.run('PRAGMA foreign_keys = OFF');
         
-        // 1. reservationsテーブルを完全削除して再作成
-        await database.run('DROP TABLE IF EXISTS reservations');
+        // テーブル作成
+        await createRequiredTables();
         
+        // reservationsテーブルの作成（DROPは実行しない）
         await database.run(`
-            CREATE TABLE reservations (
+            CREATE TABLE IF NOT EXISTS reservations (
                 reservation_id TEXT PRIMARY KEY,
                 customer_id TEXT NOT NULL,
                 available_date_id TEXT NOT NULL,
@@ -38,36 +54,25 @@ async function cleanMigration() {
             )
         `);
         
-        // 2. インデックス作成
+        // インデックス作成
         await database.run('CREATE INDEX IF NOT EXISTS idx_reservations_customer_id ON reservations(customer_id)');
         await database.run('CREATE INDEX IF NOT EXISTS idx_reservations_date_id ON reservations(available_date_id)');
         await database.run('CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(reservation_status)');
         
-        // 3. 他のテーブルも必要に応じて確認・作成
-        await createRequiredTables();
-        
-        // 4. 初期設定データ挿入
+        // 初期設定データ挿入
         await insertDefaultSettings();
         
-        // 5. 管理者データ挿入（追加）
+        // 管理者データ挿入
         await insertDefaultAdmin();
         
-        // 6. 外部キー制約を再有効化
+        // 外部キー制約を再有効化
         await database.run('PRAGMA foreign_keys = ON');
-        
-        // 7. テーブル構造確認
-        const tableInfo = await database.all(`PRAGMA table_info(reservations)`);
-        const hasNotesColumn = tableInfo.some(col => col.name === 'notes');
-        
-        if (hasNotesColumn) {
-            throw new Error('notesカラムが残っています');
-        }
         
         console.log('✅ データベースの初期化が完了しました');
         return true;
         
     } catch (error) {
-        console.error('クリーンマイグレーションエラー:', error.message);
+        console.error('マイグレーションエラー:', error.message);
         
         // 外部キー制約を再有効化（エラー時も）
         try {
@@ -81,7 +86,48 @@ async function cleanMigration() {
 }
 
 /**
- * 必要なテーブルを作成
+ * 既存データの存在確認
+ * @returns {Promise<boolean>}
+ */
+async function checkExistingData() {
+    try {
+        // 各テーブルのレコード数を確認
+        const tables = [
+            'manager_list',
+            'customers',
+            'reservations',
+            'available_dates'
+        ];
+        
+        for (const table of tables) {
+            const result = await database.get(
+                `SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name=?`,
+                [table]
+            );
+            
+            if (result.count > 0) {
+                // テーブルが存在する場合、データも確認
+                try {
+                    const dataCount = await database.get(`SELECT COUNT(*) as count FROM ${table}`);
+                    if (dataCount.count > 0) {
+                        console.log(`📊 ${table}に${dataCount.count}件のデータが存在します`);
+                        return true;
+                    }
+                } catch (e) {
+                    // テーブルが存在しない場合は無視
+                }
+            }
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('データ確認エラー:', error);
+        return false;
+    }
+}
+
+/**
+ * 必要なテーブルを作成（CREATE IF NOT EXISTSで安全に）
  * @returns {Promise<void>}
  */
 async function createRequiredTables() {
@@ -180,12 +226,14 @@ async function insertDefaultSettings() {
                 (setting_id, setting_key, setting_value, description, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?)
             `, [settingId, key, value, description, now, now]);
+            
+            console.log(`✅ 設定を追加: ${key}`);
         }
     }
 }
 
 /**
- * デフォルト管理者を挿入（新規追加）
+ * デフォルト管理者を挿入
  * @returns {Promise<void>}
  */
 async function insertDefaultAdmin() {
@@ -206,7 +254,8 @@ async function insertDefaultAdmin() {
         
         if (!existing) {
             const managerId = `manager_${Date.now()}`;
-            const passwordHash = hashPassword(defaultAdmin.password);
+            // bcryptでハッシュ化
+            const passwordHash = await bcrypt.hash(defaultAdmin.password, 10);
             
             await database.run(`
                 INSERT INTO manager_list 
