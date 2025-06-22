@@ -1,0 +1,10 @@
+node_modules/
+.env
+*.log
+tire_storage.db*
+backup/
+
+# .gitignoreに以下を追加
+*.db
+*.db-shm
+*.db-wal

@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>管理者カレンダー - タイヤ保管予約</title>
+    <!-- 管理者専用ライブラリ -->
+    <script src="./js/admin-common.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #0cc0df;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .admin-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 5px;
+            display: inline-block;
+        }
+
+        .admin-info {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 10px;
+            border-radius: 10px;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .week-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .nav-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-button:disabled {
+            color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .week-display {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .reservation-table {
+            flex: 1;
+            margin: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            position: relative;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        .table-header {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .table-header th {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+            border-right: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+
+        .table-header th:first-child {
+            width: 80px;
+            background: #f8f9fa;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            border-right: 2px solid #e9ecef;
+        }
+
+        .table-header th:last-child {
+            border-right: none;
+        }
+
+        .time-column {
+            width: 80px;
+            background: #fff;
+            text-align: center;
+            padding: 12px 6px;
+            font-weight: 600;
+            color: #333;
+            border-right: 2px solid #e9ecef;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+
+        .slot-cell {
+            text-align: center;
+            padding: 15px 8px;
+            border-right: 1px solid #e9ecef;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .slot-cell:last-child {
+            border-right: none;
+        }
+
+        .slot-cell.unavailable {
+            background: #fff;
+        }
+
+        .slot-cell.unavailable:hover {
+            background: #e3f2fd;
+        }
+
+        .slot-cell.available {
+            background: #e3f2fd;
+            border: 1px solid #0cc0df;
+        }
+
+        .slot-cell.available:hover {
+            background: #bbdefb;
+        }
+
+        .slot-cell.reserved {
+            background: #ffebee;
+            border: 1px solid #f44336;
+        }
+
+        .slot-cell.reserved:hover {
+            background: #ffcdd2;
+        }
+
+        .slot-symbol {
+            font-size: 20px;
+            display: block;
+        }
+
+        .unavailable .slot-symbol {
+            color: #ccc;
+        }
+
+        .available .slot-symbol {
+            color: #0cc0df;
+        }
+
+        .reserved .slot-symbol {
+            color: #dc3545;
+        }
+
+        .selected {
+            background: #f0f9ff !important;
+            border: 2px solid #0cc0df !important;
+            box-shadow: 0 0 0 1px #0cc0df;
+        }
+
+        .selected .slot-symbol {
+            color: #0cc0df !important;
+        }
+
+        .selected-for-deletion {
+            background: #ffebee !important;
+            border: 2px solid #dc3545 !important;
+            box-shadow: 0 0 0 1px #dc3545;
+        }
+
+        .selected-for-deletion .slot-symbol {
+            color: #dc3545 !important;
+        }
+
+        .customer-name {
+            font-size: 10px;
+            color: #666;
+            margin-top: 2px;
+            display: block;
+        }
+
+        .footer {
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        }
+
+        .admin-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #0cc0df;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0ab5d1;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .stats-display {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-available {
+            color: #0cc0df;
+        }
+
+        .stat-reserved {
+            color: #dc3545;
+        }
+
+        .stat-unset {
+            color: #666;
+        }
+
+        /* モーダル */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .modal-datetime {
+            font-size: 16px;
+            font-weight: 600;
+            color: #dc3545;
+            margin: 15px 0;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-button.confirm {
+            background: #dc3545;
+            color: white;
+        }
+
+        .modal-button.confirm:hover {
+            background: #c82333;
+        }
+
+        .modal-button.cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-button.cancel:hover {
+            background: #5a6268;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* データ同期インジケーター */
+        .sync-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #0cc0df;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 999;
+            display: none;
+        }
+
+        .sync-indicator.syncing {
+            display: block;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 18px;
+            }
+            
+            .week-display {
+                font-size: 16px;
+            }
+            
+            .nav-button {
+                font-size: 20px;
+            }
+            
+            .reservation-table {
+                margin: 10px;
+            }
+            
+            .table-header th,
+            .time-column,
+            .slot-cell {
+                padding: 8px 4px;
+                font-size: 12px;
+            }
+            
+            .slot-symbol {
+                font-size: 16px;
+            }
+
+            .admin-controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .stats-display {
+                justify-content: center;
+            }
+
+            .table-header th:first-child,
+            .time-column {
+                font-size: 11px;
+                padding: 8px 2px;
+            }
+
+            .admin-info,
+            .logout-btn {
+                position: static;
+                display: block;
+                margin: 5px auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- データ同期インジケーター -->
+    <div class="sync-indicator" id="syncIndicator">
+        データ更新中...
+    </div>
+
+    <div class="header">
+        <h1 id="headerTitle">管理者カレンダー - タイヤ保管予約</h1>
+        <div class="admin-badge">管理者モード</div>
+        <div class="admin-info" id="adminInfo">
+            管理者
+        </div>
+        <div class="week-navigation" id="weekNav">
+            <button class="nav-button" id="prevWeek" disabled>‹</button>
+            <div class="week-display" id="weekDisplay"></div>
+            <button class="nav-button" id="nextWeek">›</button>
+        </div>
+    </div>
+
+    <!-- 予約テーブル -->
+    <div class="reservation-table" id="reservationTable">
+        <div class="table-container">
+            <table>
+                <thead class="table-header">
+                    <tr id="dateHeader">
+                        <th>時間</th>
+                        <!-- 日付ヘッダーはJavaScriptで生成 -->
+                    </tr>
+                </thead>
+                <tbody id="timeSlots">
+                    <!-- 時間スロットはJavaScriptで生成 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer" id="footerSection">
+        <div class="admin-controls">
+            <div class="stats-display">
+                <div class="stat-item stat-unset">
+                    <span>×</span> 未設定: <span id="unsetCount">-</span>
+                </div>
+                <div class="stat-item stat-available">
+                    <span>⚪</span> 利用可能: <span id="availableCount">-</span>
+                </div>
+                <div class="stat-item stat-reserved">
+                    <span style="color: #dc3545;">⚪</span> 予約済み: <span id="reservedCount">-</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <button class="btn btn-success" id="bulkCreateBtn">登録</button>
+                <button class="btn btn-danger" id="bulkDeleteBtn">削除</button>
+                <button class="btn btn-primary" id="refreshBtn">更新</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 予約削除確認モーダル -->
+    <div class="modal-overlay hidden" id="deleteConfirmModal">
+        <div class="modal">
+            <h3>⚠️ 予約削除の確認</h3>
+            <p>選択した時間には既にユーザーの予約が入っています。</p>
+            <p>この時間を利用可能時間に登録すると既存ユーザーの予約はキャンセルとなります。</p>
+            <div class="modal-datetime" id="deleteConfirmDatetime"></div>
+            <p style="color: #dc3545; font-weight: bold;">予約可能日時に登録してもよろしいですか？</p>
+            <div class="modal-buttons">
+                <button class="modal-button confirm" id="deleteConfirmBtn">はい</button>
+                <button class="modal-button cancel" id="deleteCancelBtn">いいえ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // タイムゾーン修正用ユーティリティ関数（追加）
+        // ==========================================
+        
+        /**
+         * 日付をローカルタイムゾーンベースでYYYY-MM-DD形式に変換
+         * toISOString().split('T')[0] の代替として使用
+         */
+        function formatDateLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        console.log('✅ タイムゾーン修正ユーティリティ関数追加');
+
+        // ==========================================
+        // 元のコード（最小限の修正のみ）
+        // ==========================================
+
+        let currentWeekStart = new Date();
+        let businessSettings = {};
+        let currentData = {
+            available: [],
+            reserved: [],
+            allSlots: []
+        };
+        let currentAdminSession = null;
+        let selectedSlots = []; // 新規作成用の選択されたスロットを管理
+        let selectedForDeletion = []; // 削除用の選択されたスロットを管理
+
+        // 時間をリセットして日付のみにする
+        function resetTime(date) {
+            date.setHours(0, 0, 0, 0);
+            return date;
+        }
+
+        // 週の開始日を取得（今日から開始する週）
+        function getWeekStart(date) {
+            const d = new Date(date);
+            return resetTime(d);
+        }
+
+        // ページ初期化
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                console.log('🔧 管理者カレンダー初期化開始');
+                
+                // 管理者認証確認
+                const session = await AdminCommonLib.checkAdminAuth();
+                if (!session) {
+                    console.log('管理者認証失敗 - ログイン画面にリダイレクト');
+                    AdminCommonLib.redirectToPage('./admin-login.html', '管理者ログインが必要');
+                    return;
+                }
+                
+                currentAdminSession = session;
+                updateAdminInfo(session);
+                
+                console.log('✅ 管理者認証OK:', session.username);
+                
+                // 管理者カレンダー初期化
+                await initializeAdminCalendar();
+                
+            } catch (error) {
+                console.error('管理者カレンダー初期化エラー:', error);
+                AdminCommonLib.showError('カレンダーの初期化に失敗しました: ' + error.message);
+            }
+        });
+
+        // 管理者情報表示更新
+        function updateAdminInfo(session) {
+            const adminInfo = document.getElementById('adminInfo');
+            if (session && session.username) {
+                adminInfo.textContent = `${session.username}`;
+            } else {
+                adminInfo.textContent = '管理者';
+            }
+        }
+
+        // 管理者カレンダー初期化
+        async function initializeAdminCalendar() {
+            currentWeekStart = getWeekStart(new Date());
+            
+            await Promise.all([
+                fetchBusinessSettings(),
+                fetchCalendarData()
+            ]);
+
+            updateWeekDisplay();
+            generateTable();
+            updateStats();
+            setupEventListeners();
+        }
+
+        // 営業設定を取得
+        async function fetchBusinessSettings() {
+            try {
+                console.log('営業設定取得中...');
+                
+                const response = await AdminCommonLib.authenticatedFetch('/api/available-dates/settings');
+                
+                if (response.success && response.settings) {
+                    businessSettings = {
+                        business_start_time: response.settings.business_hours_start?.value || '09:00',
+                        business_end_time: response.settings.business_hours_end?.value || '18:00',
+                        slot_interval_minutes: parseInt(response.settings.reservation_interval_minutes?.value || '30')
+                    };
+                } else {
+                    throw new Error('Invalid settings response format');
+                }
+                
+                console.log('営業設定取得完了:', businessSettings);
+                
+            } catch (error) {
+                console.error('営業設定取得失敗:', error);
+                // デフォルト値を使用
+                businessSettings = {
+                    business_start_time: '09:00',
+                    business_end_time: '18:00',
+                    slot_interval_minutes: 30
+                };
+            }
+        }
+
+        // カレンダーデータを取得（修正版）
+        async function fetchCalendarData() {
+            try {
+                console.log('カレンダーデータ取得中...');
+                
+                const startDate = formatDateLocal(currentWeekStart); // 修正: toISOString()を削除
+                const endDate = new Date(currentWeekStart);
+                endDate.setDate(endDate.getDate() + 6);
+                const endDateStr = formatDateLocal(endDate); // 修正: toISOString()を削除
+                
+                console.log('取得期間:', { startDate, endDateStr }); // デバッグログ追加
+                
+                // 利用可能時間枠を取得
+                const availableResponse = await AdminCommonLib.authenticatedFetch(`/api/available-dates?start_date=${startDate}&end_date=${endDateStr}`);
+                currentData.available = Array.isArray(availableResponse) ? availableResponse : (availableResponse.data || []);
+                
+                // 予約済み時間枠を取得
+                const reservedResponse = await AdminCommonLib.authenticatedFetch(`/api/admin/reservations?start_date=${startDate}&end_date=${endDateStr}`);
+                currentData.reserved = Array.isArray(reservedResponse) ? reservedResponse : (reservedResponse.data || []);
+                
+                console.log('カレンダーデータ取得完了:', {
+                    available: currentData.available.length,
+                    reserved: currentData.reserved.length
+                });
+                
+            } catch (error) {
+                console.error('カレンダーデータ取得失敗:', error);
+                currentData = { available: [], reserved: [], allSlots: [] };
+            }
+        }
+
+        // 時間スロットを生成
+        function generateTimeSlots() {
+            const slots = [];
+            const startTime = businessSettings.business_start_time || '09:00';
+            const endTime = businessSettings.business_end_time || '18:00';
+            const intervalMinutes = businessSettings.slot_interval_minutes || 30;
+            
+            const [startHour, startMinute] = startTime.split(':').map(Number);
+            const [endHour, endMinute] = endTime.split(':').map(Number);
+            
+            let currentTime = new Date();
+            currentTime.setHours(startHour, startMinute, 0, 0);
+            
+            const endTimeObj = new Date();
+            endTimeObj.setHours(endHour, endMinute, 0, 0);
+
+            while (currentTime < endTimeObj) {
+                const timeString = currentTime.toTimeString().slice(0, 5);
+                slots.push(timeString);
+                currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);
+            }
+
+            return slots;
+        }
+
+        // 週表示を更新
+        function updateWeekDisplay() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            
+            const startStr = `${currentWeekStart.getMonth() + 1}/${currentWeekStart.getDate()}`;
+            const endStr = `${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
+            
+            document.getElementById('weekDisplay').textContent = `${startStr} - ${endStr}`;
+            
+            const today = new Date();
+            resetTime(today);
+            
+            document.getElementById('prevWeek').disabled = false; // 管理者は過去も編集可能
+            
+            const maxDate = new Date();
+            maxDate.setMonth(maxDate.getMonth() + 6); // 管理者は6ヶ月先まで設定可能
+            resetTime(maxDate);
+            
+            document.getElementById('nextWeek').disabled = currentWeekStart >= maxDate;
+        }
+
+        // スロットの状態を取得（修正版）
+        function getSlotState(date, time) {
+            const dateStr = formatDateLocal(date); // 修正: toISOString()を削除
+            const timeStr = time + ':00';
+            
+            // 予約済みかチェック
+            const reservation = currentData.reserved.find(slot => {
+                const reserveDate = slot.available_date || slot.date;
+                const reserveTime = slot.available_time || slot.time;
+                return reserveDate === dateStr && reserveTime === timeStr;
+            });
+            
+            if (reservation) {
+                return {
+                    state: 'reserved',
+                    reservation: reservation
+                };
+            }
+            
+            // 利用可能時間かチェック
+            const available = currentData.available.find(slot => {
+                const availDate = slot.available_date || slot.date;
+                const availTime = slot.available_time || slot.time;
+                return availDate === dateStr && 
+                       availTime === timeStr &&
+                       (slot.is_active === undefined || slot.is_active === 1);
+            });
+            
+            if (available) {
+                return {
+                    state: 'available',
+                    slot: available
+                };
+            }
+            
+            return {
+                state: 'unavailable'
+            };
+        }
+
+        // テーブルを生成
+        function generateTable() {
+            const dateHeader = document.getElementById('dateHeader');
+            const timeSlots = document.getElementById('timeSlots');
+            
+            dateHeader.innerHTML = '<th>時間</th>';
+            timeSlots.innerHTML = '';
+
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(date.getDate() + i);
+                weekDates.push(date);
+                
+                const th = document.createElement('th');
+                const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                th.textContent = `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`;
+                dateHeader.appendChild(th);
+            }
+
+            const timeSlotList = generateTimeSlots();
+            timeSlotList.forEach(time => {
+                const tr = document.createElement('tr');
+                
+                const timeCell = document.createElement('td');
+                timeCell.className = 'time-column';
+                timeCell.textContent = time;
+                tr.appendChild(timeCell);
+
+                weekDates.forEach((date, dayIndex) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'slot-cell';
+                    
+                    const symbol = document.createElement('span');
+                    symbol.className = 'slot-symbol';
+                    
+                    const slotState = getSlotState(date, time);
+                    
+                    cell.classList.add(slotState.state);
+                    
+                    if (slotState.state === 'unavailable') {
+                        symbol.textContent = '×';
+                        symbol.style.color = '#ccc';
+                    } else if (slotState.state === 'available') {
+                        symbol.textContent = '○';
+                        symbol.style.color = '#0cc0df';
+                    } else if (slotState.state === 'reserved') {
+                        symbol.textContent = '○';
+                        symbol.style.color = '#dc3545';
+                        if (slotState.reservation.customer_name) {
+                            const customerName = document.createElement('span');
+                            customerName.className = 'customer-name';
+                            customerName.textContent = slotState.reservation.customer_name;
+                            cell.appendChild(customerName);
+                        }
+                    }
+                    
+                    cell.appendChild(symbol);
+                    cell.addEventListener('click', () => handleSlotClick(date, time, slotState, cell));
+                    tr.appendChild(cell);
+                });
+
+                timeSlots.appendChild(tr);
+            });
+            
+            console.log('管理者カレンダー生成完了');
+        }
+
+        // スロットクリック処理（修正版：削除も選択ベース）
+        async function handleSlotClick(date, time, slotState, cellElement) {
+            console.log('セルクリック:', formatDateLocal(date), time, slotState.state);
+            
+            if (slotState.state === 'reserved') {
+                // 予約済み → 警告表示
+                console.log('予約済み時間枠 - 削除確認表示');
+                showDeleteConfirmModal(date, time, slotState.reservation);
+                return;
+            }
+
+            if (slotState.state === 'available') {
+                // 利用可能 → 削除用選択状態に変更
+                const slotKey = `${formatDateLocal(date)}_${time}`;
+                const existingIndex = selectedForDeletion.findIndex(slot => slot.key === slotKey);
+                
+                if (existingIndex >= 0) {
+                    // 削除選択解除
+                    selectedForDeletion.splice(existingIndex, 1);
+                    cellElement.classList.remove('selected-for-deletion');
+                    console.log('削除選択解除:', slotKey);
+                } else {
+                    // 削除選択追加
+                    selectedForDeletion.push({
+                        key: slotKey,
+                        date: date,
+                        time: time,
+                        element: cellElement,
+                        availableDateId: slotState.slot.available_date_id
+                    });
+                    cellElement.classList.add('selected-for-deletion');
+                    console.log('削除選択追加:', slotKey);
+                }
+                
+                updateSelectionStatus();
+                return;
+            }
+
+            // 未設定の場合のみ新規作成用選択機能
+            if (slotState.state === 'unavailable') {
+                const slotKey = `${formatDateLocal(date)}_${time}`;
+                const existingIndex = selectedSlots.findIndex(slot => slot.key === slotKey);
+                
+                if (existingIndex >= 0) {
+                    // 選択解除
+                    selectedSlots.splice(existingIndex, 1);
+                    cellElement.classList.remove('selected');
+                    console.log('選択解除:', slotKey);
+                } else {
+                    // 選択追加
+                    selectedSlots.push({
+                        key: slotKey,
+                        date: date,
+                        time: time,
+                        element: cellElement
+                    });
+                    cellElement.classList.add('selected');
+                    console.log('選択追加:', slotKey);
+                }
+                
+                updateSelectionStatus();
+            }
+        }
+
+        // 選択状況更新（修正版）
+        function updateSelectionStatus() {
+            const unsetCountElement = document.getElementById('unsetCount');
+            const availableCountElement = document.getElementById('availableCount');
+            
+            const unsetText = unsetCountElement.textContent.split('(')[0];
+            const availableText = availableCountElement.textContent.split('(')[0];
+            
+            if (selectedSlots.length > 0) {
+                unsetCountElement.innerHTML = `${unsetText} <span style="color: #ffc107;">(${selectedSlots.length}件選択中)</span>`;
+            } else {
+                unsetCountElement.textContent = unsetText;
+            }
+            
+            if (selectedForDeletion.length > 0) {
+                availableCountElement.innerHTML = `${availableText} <span style="color: #dc3545;">(${selectedForDeletion.length}件削除選択中)</span>`;
+            } else {
+                availableCountElement.textContent = availableText;
+            }
+        }
+
+        // 選択をクリア（修正版）
+        function clearSelection() {
+            // 新規作成用選択をクリア
+            selectedSlots.forEach(slot => {
+                if (slot.element) {
+                    slot.element.classList.remove('selected');
+                }
+            });
+            selectedSlots = [];
+            
+            // 削除用選択をクリア
+            selectedForDeletion.forEach(slot => {
+                if (slot.element) {
+                    slot.element.classList.remove('selected-for-deletion');
+                }
+            });
+            selectedForDeletion = [];
+            
+            updateSelectionStatus();
+        }
+
+        /**
+         * 修正】選択されたスロットを一括作成（追加された関数）
+         */
+        async function createSelectedSlots() {
+            try {
+                console.log('選択スロット一括作成開始');
+                
+                if (selectedSlots.length === 0) {
+                    AdminCommonLib.showError('作成する時間枠を選択してください');
+                    return;
+                }
+                
+                console.log('選択されたスロット:', selectedSlots.length, '件');
+                
+                // 選択されたスロットをAPI形式に変換
+                const slotsToCreate = selectedSlots.map(slot => ({
+                    available_date: formatDateLocal(slot.date),
+                    available_time: slot.time + ':00'
+                }));
+                
+                console.log('送信データ:', slotsToCreate);
+                
+                showSyncIndicator();
+                
+                // 一括作成API呼び出し
+                const response = await AdminCommonLib.authenticatedFetch('/api/admin/available-dates/bulk', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        slots: slotsToCreate
+                    })
+                });
+                
+                if (response.success) {
+                    console.log('一括作成完了:', response.created_count, '件');
+                    AdminCommonLib.showSuccess(`${response.created_count}件の時間枠を作成しました`);
+                    
+                    // 選択をクリア
+                    clearSelection();
+                    
+                    // カレンダー更新
+                    await refreshCalendar();
+                } else {
+                    throw new Error(response.error || '時間枠の作成に失敗しました');
+                }
+                
+            } catch (error) {
+                console.error('一括作成エラー:', error);
+                AdminCommonLib.showError('時間枠の作成に失敗しました: ' + error.message);
+            } finally {
+                hideSyncIndicator();
+            }
+        }
+
+        /**
+         * 🗑️【新規追加】選択された時間枠を一括削除
+         */
+        async function deleteSelectedSlots() {
+            try {
+                console.log('選択スロット一括削除開始');
+                
+                if (selectedForDeletion.length === 0) {
+                    AdminCommonLib.showError('削除する時間枠を選択してください');
+                    return;
+                }
+                
+                console.log('削除対象スロット:', selectedForDeletion.length, '件');
+                
+                showSyncIndicator();
+                
+                let deletedCount = 0;
+                const errors = [];
+                
+                // 選択された時間枠を一つずつ削除
+                for (const slot of selectedForDeletion) {
+                    try {
+                        const response = await AdminCommonLib.authenticatedFetch(`/api/admin/available-dates/${slot.availableDateId}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (response.success) {
+                            deletedCount++;
+                        } else {
+                            errors.push(`${formatDateLocal(slot.date)} ${slot.time}: ${response.error}`);
+                        }
+                        
+                    } catch (error) {
+                        console.error('個別削除エラー:', slot, error);
+                        errors.push(`${formatDateLocal(slot.date)} ${slot.time}: ${error.message}`);
+                    }
+                }
+                
+                console.log('一括削除完了:', deletedCount, '件');
+                
+                if (deletedCount > 0) {
+                    AdminCommonLib.showSuccess(`${deletedCount}件の時間枠を削除しました`);
+                }
+                
+                if (errors.length > 0) {
+                    console.warn('削除エラー:', errors);
+                    AdminCommonLib.showError(`一部の削除に失敗しました: ${errors.length}件`);
+                }
+                
+                // 選択をクリア
+                clearSelection();
+                
+                // カレンダー更新
+                await refreshCalendar();
+                
+            } catch (error) {
+                console.error('一括削除エラー:', error);
+                AdminCommonLib.showError('時間枠の削除に失敗しました: ' + error.message);
+            } finally {
+                hideSyncIndicator();
+            }
+        }
+
+        // 時間枠作成（個別用）
+        async function createTimeSlot(date, time) {
+            try {
+                console.log('個別時間枠作成:', formatDateLocal(date), time);
+                showSyncIndicator();
+                
+                const dateStr = formatDateLocal(date);
+                const timeStr = time + ':00';
+                
+                const response = await AdminCommonLib.authenticatedFetch('/api/admin/available-dates', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        available_date: dateStr,
+                        available_time: timeStr
+                    })
+                });
+                
+                if (response.success) {
+                    console.log('個別時間枠作成完了');
+                    await refreshCalendar();
+                } else {
+                    throw new Error(response.error || '時間枠の作成に失敗しました');
+                }
+                
+            } catch (error) {
+                console.error('個別時間枠作成エラー:', error);
+                AdminCommonLib.showError('時間枠の作成に失敗しました: ' + error.message);
+            } finally {
+                hideSyncIndicator();
+            }
+        }
+
+        // 時間枠削除
+        async function deleteTimeSlot(availableDateId) {
+            try {
+                showSyncIndicator();
+                
+                const response = await AdminCommonLib.authenticatedFetch(`/api/admin/available-dates/${availableDateId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.success) {
+                    console.log('時間枠削除完了');
+                    await refreshCalendar();
+                } else {
+                    throw new Error(response.error || '時間枠の削除に失敗しました');
+                }
+                
+            } catch (error) {
+                console.error('時間枠削除エラー:', error);
+                AdminCommonLib.showError('時間枠の削除に失敗しました: ' + error.message);
+            } finally {
+                hideSyncIndicator();
+            }
+        }
+
+        // 予約削除確認モーダル表示
+        function showDeleteConfirmModal(date, time, reservation) {
+            const modal = document.getElementById('deleteConfirmModal');
+            const datetime = document.getElementById('deleteConfirmDatetime');
+            
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            datetime.textContent = `${year}/${month}/${day} ${time} - ${reservation.customer_name || '予約者'}`;
+            
+            modal.classList.remove('hidden');
+            
+            // 確認ボタンのイベント
+            document.getElementById('deleteConfirmBtn').onclick = () => {
+                modal.classList.add('hidden');
+                forceDeleteReservation(reservation);
+            };
+            
+            document.getElementById('deleteCancelBtn').onclick = () => {
+                modal.classList.add('hidden');
+            };
+        }
+
+        // 予約強制削除（利用可能時間に変更）
+        async function forceDeleteReservation(reservation) {
+            try {
+                showSyncIndicator();
+                
+                const response = await AdminCommonLib.authenticatedFetch(`/api/admin/reservations/${reservation.reservation_id}/force-delete`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.success) {
+                    console.log('予約削除 & 利用可能時間作成完了');
+                    AdminCommonLib.showSuccess('予約をキャンセルし、利用可能時間として登録しました');
+                    await refreshCalendar();
+                } else {
+                    throw new Error(response.error || '予約削除に失敗しました');
+                }
+                
+            } catch (error) {
+                console.error('予約削除エラー:', error);
+                AdminCommonLib.showError('予約削除に失敗しました: ' + error.message);
+            } finally {
+                hideSyncIndicator();
+            }
+        }
+
+        // 統計更新
+        function updateStats() {
+            const timeSlots = generateTimeSlots();
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(date.getDate() + i);
+                weekDates.push(date);
+            }
+            
+            let unsetCount = 0;
+            let availableCount = 0;
+            let reservedCount = 0;
+            
+            timeSlots.forEach(time => {
+                weekDates.forEach(date => {
+                    const state = getSlotState(date, time);
+                    if (state.state === 'unavailable') unsetCount++;
+                    else if (state.state === 'available') availableCount++;
+                    else if (state.state === 'reserved') reservedCount++;
+                });
+            });
+            
+            document.getElementById('unsetCount').textContent = unsetCount;
+            document.getElementById('availableCount').textContent = availableCount;
+            document.getElementById('reservedCount').textContent = reservedCount;
+        }
+
+        // カレンダー更新（選択クリア付き）
+        async function refreshCalendar() {
+            clearSelection(); // 両方の選択をクリア
+            await fetchCalendarData();
+            generateTable();
+            updateStats();
+        }
+
+        // イベントリスナー設定
+        function setupEventListeners() {
+            // 週ナビゲーション
+            const prevWeekBtn = document.getElementById('prevWeek');
+            const nextWeekBtn = document.getElementById('nextWeek');
+            
+            if (prevWeekBtn) {
+                prevWeekBtn.addEventListener('click', async function() {
+                    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+                    updateWeekDisplay();
+                    showSyncIndicator();
+                    await refreshCalendar();
+                    hideSyncIndicator();
+                });
+            }
+
+            if (nextWeekBtn) {
+                nextWeekBtn.addEventListener('click', async function() {
+                    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+                    updateWeekDisplay();
+                    showSyncIndicator();
+                    await refreshCalendar();
+                    hideSyncIndicator();
+                });
+            }
+
+            // フッターボタン
+            const logoutBtn = document.getElementById('logoutBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const bulkCreateBtn = document.getElementById('bulkCreateBtn');
+            const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', performLogout);
+            }
+            
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', refreshCalendar);
+            }
+            
+            if (bulkCreateBtn) {
+                bulkCreateBtn.addEventListener('click', createSelectedSlots);
+            }
+            
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.addEventListener('click', deleteSelectedSlots);
+            }
+
+            // 予約削除確認モーダル（予約済み時間枠用）
+            const deleteModal = document.getElementById('deleteConfirmModal');
+            if (deleteModal) {
+                deleteModal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.add('hidden');
+                    }
+                });
+            }
+        }
+
+        // 同期インジケーター表示
+        function showSyncIndicator() {
+            document.getElementById('syncIndicator').classList.add('syncing');
+        }
+
+        function hideSyncIndicator() {
+            document.getElementById('syncIndicator').classList.remove('syncing');
+        }
+
+        // ログアウト
+        function performLogout() {
+            if (confirm('ログアウトしますか？')) {
+                AdminCommonLib.logout();
+            }
+        }
+    </script>
+</body>
+</html>

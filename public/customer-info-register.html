@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お客様情報登録 - まるごとおまかせタイヤ保管</title>
+    <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+    <script src="./js/common.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 50%, #4dd0e1 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #00C2CC 0%, #0097A7 100%);
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 194, 204, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(180deg); }
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 8px 32px rgba(0, 194, 204, 0.15);
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .form-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #00C2CC, #4dd0e1, #00C2CC);
+            background-size: 200% 100%;
+            animation: gradient-flow 3s ease infinite;
+        }
+        
+        @keyframes gradient-flow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+        
+        .step {
+            display: flex;
+            align-items: center;
+            color: #ccc;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .step.active {
+            color: #00C2CC;
+        }
+        
+        .step.completed {
+            color: #4CAF50;
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+        
+        .step.active .step-number {
+            background: #00C2CC;
+            color: white;
+        }
+        
+        .step.completed .step-number {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .step:not(:last-child)::after {
+            content: '';
+            width: 40px;
+            height: 2px;
+            background: #e0e0e0;
+            margin: 0 16px;
+        }
+        
+        .step.completed::after {
+            background: #4CAF50;
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00695C;
+            margin-bottom: 32px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #00C2CC, #4dd0e1);
+            border-radius: 2px;
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .required {
+            color: #ff4444;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            background-color: white;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #00C2CC;
+            box-shadow: 0 0 0 3px rgba(0, 194, 204, 0.1);
+        }
+        
+        .form-input.error {
+            border-color: #ff4444;
+            box-shadow: 0 0 0 3px rgba(255, 68, 68, 0.1);
+        }
+        
+        .phone-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .phone-input {
+            flex: 1;
+            text-align: center;
+            font-family: monospace;
+        }
+        
+        .phone-separator {
+            font-size: 18px;
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .checkbox-input {
+            width: 20px;
+            height: 20px;
+            accent-color: #00C2CC;
+        }
+        
+        .checkbox-label {
+            font-size: 16px;
+            color: #555;
+            cursor: pointer;
+        }
+        
+        .error-message {
+            color: #ff4444;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .form-group.error .error-message {
+            display: block;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 32px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #00C2CC, #4dd0e1);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 194, 204, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0097A7, #00C2CC);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 194, 204, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            border-color: #ccc;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .confirmation-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .detail-value {
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .success-icon {
+            font-size: 64px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .success-message {
+            text-align: center;
+            color: #4CAF50;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .redirect-info {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 480px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .form-card {
+                padding: 20px;
+            }
+            
+            .section-title {
+                font-size: 20px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .phone-group {
+                flex-wrap: wrap;
+            }
+            
+            .phone-input {
+                min-width: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>お客様情報登録</h1>
+    </div>
+    
+    <div class="container">
+        <!-- ステップインジケーター -->
+        <div class="step-indicator">
+            <div class="step active" id="step1">
+                <div class="step-number">1</div>
+                <span>入力</span>
+            </div>
+            <div class="step" id="step2">
+                <div class="step-number">2</div>
+                <span>確認</span>
+            </div>
+            <div class="step" id="step3">
+                <div class="step-number">3</div>
+                <span>完了</span>
+            </div>
+        </div>
+        
+        <!-- 入力フォーム -->
+        <div class="form-card" id="input-form">
+            <h2 class="section-title">お客様情報を入力してください</h2>
+            
+            <form id="customer-form">
+                <div class="form-group">
+                    <label class="form-label" for="customer-name">
+                        お名前 <span class="required">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="customer-name" 
+                        class="form-input" 
+                        placeholder="例: 田中 太郎"
+                        maxlength="100"
+                        required
+                    >
+                    <div class="error-message">お名前を入力してください</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        電話番号 <span class="required">*</span>
+                    </label>
+                    <div class="phone-group">
+                        <input 
+                            type="tel" 
+                            id="phone-1" 
+                            class="form-input phone-input" 
+                            placeholder="090"
+                            maxlength="4"
+                            required
+                            inputmode="numeric"
+                        >
+                        <span class="phone-separator">-</span>
+                        <input 
+                            type="tel" 
+                            id="phone-2" 
+                            class="form-input phone-input" 
+                            placeholder="1234"
+                            maxlength="4"
+                            required
+                            inputmode="numeric"
+                        >
+                        <span class="phone-separator">-</span>
+                        <input 
+                            type="tel" 
+                            id="phone-3" 
+                            class="form-input phone-input" 
+                            placeholder="5678"
+                            maxlength="4"
+                            required
+                            inputmode="numeric"
+                        >
+                    </div>
+                    <div class="error-message">正しい電話番号を入力してください</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="car-model">
+                        車種 <span class="required">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="car-model" 
+                        class="form-input" 
+                        placeholder="例: トヨタ プリウス"
+                        maxlength="100"
+                        required
+                    >
+                    <div class="error-message">車種を入力してください</div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input 
+                            type="checkbox" 
+                            id="is-light-vehicle" 
+                            class="checkbox-input"
+                        >
+                        <label for="is-light-vehicle" class="checkbox-label">軽自動車</label>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-primary">
+                        確認画面へ
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 確認画面 -->
+        <div class="form-card hidden" id="confirmation-form">
+            <h2 class="section-title">入力内容をご確認ください</h2>
+            
+            <div class="confirmation-details">
+                <div class="detail-item">
+                    <span class="detail-label">お名前</span>
+                    <span class="detail-value" id="confirm-name"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">電話番号</span>
+                    <span class="detail-value" id="confirm-phone"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">車種</span>
+                    <span class="detail-value" id="confirm-car"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">車両タイプ</span>
+                    <span class="detail-value" id="confirm-vehicle-type"></span>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button type="button" class="btn btn-secondary" id="back-to-input-btn">
+                    修正する
+                </button>
+                <button type="button" class="btn btn-primary" id="submit-registration-btn">
+                    この内容で登録する
+                </button>
+            </div>
+        </div>
+        
+        <!-- 完了画面 -->
+        <div class="form-card hidden" id="completion-form">
+            <div class="success-message">お客様情報の登録が完了しました！</div>
+            
+            <p style="text-align: center; color: #666; line-height: 1.6;">
+                ご登録いただき、ありがとうございます。<br>
+                引き続きサービスをご利用ください。
+            </p>
+            
+            <div class="redirect-info">
+                <span id="countdown">3</span>秒後に元の画面に戻ります...
+            </div>
+        </div>
+    </div>
+
+<script>
+        let currentUserId = null;
+        let customerData = {};
+
+        // ページ初期化
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                CommonLib.showLoading('初期化中...');
+                
+                // 共通処理で初期化（認証のみ、顧客確認はスキップ）
+                const authResult = await CommonLib.initializePageAuth('顧客登録');
+                
+                if (!authResult) {
+                    // エラーまたはリダイレクト中
+                    return;
+                }
+                
+                currentUserId = authResult.userId;
+                
+                console.log('顧客登録画面初期化完了 - USER_ID:', currentUserId);
+                
+                // 既存顧客チェック（登録済みの場合はリダイレクト）
+                await checkExistingCustomer();
+                
+                // フォーム設定
+                setupForm();
+                
+            } catch (error) {
+                console.error('顧客登録画面初期化エラー:', error);
+                CommonLib.showErrorScreen(error.message);
+            } finally {
+                CommonLib.hideLoading();
+            }
+        });
+
+        // 既存顧客チェック
+        async function checkExistingCustomer() {
+            try {
+                console.log('既存顧客確認中...');
+                
+                const response = await fetch(`${CommonLib.CONFIG.API_BASE}/api/customers/check/${currentUserId}`);
+                const result = await CommonLib.handleApiResponse(response);
+                
+                if (result.exists && result.customer) {
+                    console.log('既に登録済みの顧客 - メイン画面にリダイレクト');
+                    
+                    // 登録済みの場合は元の画面にリダイレクト
+                    const returnUrl = new URLSearchParams(window.location.search).get('return') || './index.html';
+                    window.location.href = returnUrl;
+                    return;
+                }
+                
+                console.log('未登録顧客 - 登録フォーム表示');
+                
+            } catch (error) {
+                console.error('既存顧客確認エラー:', error);
+                // エラーの場合は登録フォームを表示（フェイルセーフ）
+            }
+        }
+
+        // フォーム設定
+        function setupForm() {
+            setupPhoneInputs();
+            setupFormValidation();
+            
+            // フォームのsubmitイベントを処理
+            const form = document.getElementById('customer-form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault(); // ページ再読み込みを防ぐ
+                    showConfirmationStep();
+                });
+            }
+            
+            // 確認画面のボタンイベント設定
+            setupConfirmationButtons();
+        }
+
+        // 確認画面のボタンイベント設定
+        function setupConfirmationButtons() {
+            // 修正するボタン
+            const backToInputBtn = document.getElementById('back-to-input-btn');
+            if (backToInputBtn) {
+                backToInputBtn.addEventListener('click', function() {
+                    showInputForm();
+                });
+            }
+
+            // 登録するボタン
+            const submitRegistrationBtn = document.getElementById('submit-registration-btn');
+            if (submitRegistrationBtn) {
+                submitRegistrationBtn.addEventListener('click', function() {
+                    registerCustomer();
+                });
+            }
+        }
+
+        // 電話番号入力フィールドの設定
+        function setupPhoneInputs() {
+            const phoneInputs = [
+                document.getElementById('phone-1'),
+                document.getElementById('phone-2'),
+                document.getElementById('phone-3')
+            ];
+
+            phoneInputs.forEach((input, index) => {
+                if (!input) return;
+
+                input.addEventListener('input', function(e) {
+                    let value = this.value.replace(/\D/g, '');
+                    const maxLength = index === 0 ? 3 : 4;
+                    
+                    if (value.length > maxLength) {
+                        value = value.slice(0, maxLength);
+                    }
+                    
+                    this.value = value;
+                    
+                    if (value.length === maxLength && index < phoneInputs.length - 1) {
+                        setTimeout(() => {
+                            phoneInputs[index + 1].focus();
+                            phoneInputs[index + 1].select();
+                        }, 10);
+                    }
+                    
+                    clearError(this);
+                });
+
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && this.value === '' && index > 0) {
+                        setTimeout(() => {
+                            phoneInputs[index - 1].focus();
+                            const prevInput = phoneInputs[index - 1];
+                            prevInput.setSelectionRange(prevInput.value.length, prevInput.value.length);
+                        }, 10);
+                    }
+                });
+
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    const numbers = pastedText.replace(/\D/g, '');
+                    
+                    if (numbers.length >= 10) {
+                        phoneInputs[0].value = numbers.slice(0, 3);
+                        phoneInputs[1].value = numbers.slice(3, 7);
+                        phoneInputs[2].value = numbers.slice(7, 11);
+                        phoneInputs[2].focus();
+                    }
+                });
+
+                input.addEventListener('focus', function() {
+                    setTimeout(() => {
+                        this.select();
+                    }, 10);
+                });
+            });
+        }
+
+        // フォームバリデーション設定
+        function setupFormValidation() {
+            ['customer-name', 'car-model'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', () => clearError(element));
+                }
+            });
+        }
+
+        // 電話番号バリデーション
+        function validatePhone() {
+            const phone1 = document.getElementById('phone-1').value.trim();
+            const phone2 = document.getElementById('phone-2').value.trim();
+            const phone3 = document.getElementById('phone-3').value.trim();
+            
+            console.log('電話番号バリデーション詳細:');
+            console.log('- phone1 element:', document.getElementById('phone-1'));
+            console.log('- phone1 value:', phone1);
+            console.log('- phone2 element:', document.getElementById('phone-2'));
+            console.log('- phone2 value:', phone2);
+            console.log('- phone3 element:', document.getElementById('phone-3'));
+            console.log('- phone3 value:', phone3);
+            
+            if (!phone1 || !phone2 || !phone3) {
+                console.log('電話番号の一部が空です');
+                return { valid: false, message: '電話番号をすべて入力してください' };
+            }
+            
+            if (!/^\d{3}$/.test(phone1)) {
+                console.log('phone1 が3桁数字でない:', phone1);
+                return { valid: false, message: '最初の番号は3桁の数字で入力してください' };
+            }
+            
+            if (!/^\d{4}$/.test(phone2)) {
+                console.log('phone2 が4桁数字でない:', phone2);
+                return { valid: false, message: '中間の番号は4桁の数字で入力してください' };
+            }
+            
+            if (!/^\d{4}$/.test(phone3)) {
+                console.log('phone3 が4桁数字でない:', phone3);
+                return { valid: false, message: '最後の番号は4桁の数字で入力してください' };
+            }
+            
+            const fullPhone = `${phone1}-${phone2}-${phone3}`;
+            console.log('電話番号バリデーション成功:', fullPhone);
+            return { valid: true, phone: fullPhone };
+        }
+
+        // フォームバリデーション
+        function validateForm() {
+            console.log('フォームバリデーション開始');
+            let isValid = true;
+            
+            const nameElement = document.getElementById('customer-name');
+            const name = nameElement ? nameElement.value.trim() : '';
+            console.log('名前チェック:', {
+                element: nameElement,
+                value: name,
+                isEmpty: !name
+            });
+            
+            if (!name) {
+                showError('お名前を入力してください', nameElement);
+                isValid = false;
+                console.log('名前バリデーション失敗');
+            } else {
+                clearError(nameElement);
+                console.log('名前バリデーション成功');
+            }
+            
+            const phoneValidation = validatePhone();
+            console.log('電話番号バリデーション結果:', phoneValidation);
+            if (!phoneValidation.valid) {
+                showError(phoneValidation.message, document.getElementById('phone-1'));
+                isValid = false;
+                console.log('電話番号バリデーション失敗');
+            } else {
+                clearError(document.getElementById('phone-1'));
+                console.log('電話番号バリデーション成功');
+            }
+            
+            const carModelElement = document.getElementById('car-model');
+            const carModel = carModelElement ? carModelElement.value.trim() : '';
+            console.log('車種チェック:', {
+                element: carModelElement,
+                value: carModel,
+                isEmpty: !carModel
+            });
+            
+            if (!carModel) {
+                showError('車種を入力してください', carModelElement);
+                isValid = false;
+                console.log('車種バリデーション失敗');
+            } else {
+                clearError(carModelElement);
+                console.log('車種バリデーション成功');
+            }
+            
+            console.log('フォームバリデーション結果:', isValid);
+            return isValid;
+        }
+
+        // エラー表示
+        function showError(message, inputElement = null) {
+            if (inputElement) {
+                const formGroup = inputElement.closest('.form-group');
+                if (formGroup) {
+                    formGroup.classList.add('error');
+                    const errorMessage = formGroup.querySelector('.error-message');
+                    if (errorMessage) {
+                        errorMessage.textContent = message;
+                    }
+                }
+            }
+        }
+
+        // エラークリア
+        function clearError(inputElement) {
+            const formGroup = inputElement.closest('.form-group');
+            if (formGroup) {
+                formGroup.classList.remove('error');
+            }
+        }
+
+        // フォームデータ取得
+        function getFormData() {
+            const phoneValidation = validatePhone();
+            const name = document.getElementById('customer-name').value.trim();
+            const carModel = document.getElementById('car-model').value.trim();
+            const isLightVehicle = document.getElementById('is-light-vehicle').checked;
+            
+            console.log('getFormData 詳細:');
+            console.log('- name element:', document.getElementById('customer-name'));
+            console.log('- name value raw:', document.getElementById('customer-name').value);
+            console.log('- name value trimmed:', name);
+            console.log('- phone validation:', phoneValidation);
+            console.log('- carModel element:', document.getElementById('car-model'));
+            console.log('- carModel value raw:', document.getElementById('car-model').value);
+            console.log('- carModel value trimmed:', carModel);
+            console.log('- isLightVehicle element:', document.getElementById('is-light-vehicle'));
+            console.log('- isLightVehicle checked:', isLightVehicle);
+            
+            const formData = {
+                name: name,
+                phone: phoneValidation.phone,
+                carModel: carModel,
+                isLightVehicle: isLightVehicle
+            };
+            
+            console.log('最終 formData:', formData);
+            return formData;
+        }
+
+        // ステップインジケーター更新
+        function updateStepIndicator(step) {
+            console.log('ステップ更新:', step);
+            
+            // 全てのステップを一旦リセット
+            for (let i = 1; i <= 3; i++) {
+                const stepElement = document.getElementById(`step${i}`);
+                if (stepElement) {
+                    stepElement.classList.remove('active', 'completed');
+                    if (i < step) {
+                        stepElement.classList.add('completed');
+                    } else if (i === step) {
+                        stepElement.classList.add('active');
+                    }
+                }
+            }
+        }
+
+        // 入力画面表示
+        function showInputForm() {
+            updateStepIndicator(1);
+            document.getElementById('input-form').classList.remove('hidden');
+            document.getElementById('confirmation-form').classList.add('hidden');
+            document.getElementById('completion-form').classList.add('hidden');
+        }
+
+        // 確認画面表示
+        function showConfirmationStep() {
+            console.log('=== 確認画面表示開始 ===');
+            
+            if (!validateForm()) {
+                console.log('フォームバリデーション失敗');
+                return;
+            }
+
+            // 入力値取得・保存
+            customerData = getFormData();
+            console.log('フォームデータ:', customerData);
+            console.log('軽自動車フラグ:', customerData.isLightVehicle);
+
+            // 確認画面に値を設定
+            document.getElementById('confirm-name').textContent = customerData.name;
+            document.getElementById('confirm-phone').textContent = customerData.phone;
+            document.getElementById('confirm-car').textContent = customerData.carModel;
+            document.getElementById('confirm-vehicle-type').textContent = customerData.isLightVehicle ? '軽' : '普通';
+
+            // ステップ2に移行
+            updateStepIndicator(2);
+            
+            // 画面切り替え
+            document.getElementById('input-form').classList.add('hidden');
+            document.getElementById('confirmation-form').classList.remove('hidden');
+            document.getElementById('completion-form').classList.add('hidden');
+        }
+
+        // 顧客登録
+        async function registerCustomer() {
+            console.log('=== 顧客登録開始 ===');
+
+            const registerButton = document.getElementById('submit-registration-btn');
+            if (!registerButton) {
+                console.error('登録ボタンが見つかりません');
+                return;
+            }
+
+            const originalText = registerButton.textContent;
+            registerButton.disabled = true;
+            registerButton.textContent = '登録中...';
+
+            try {
+                console.log('🔍 customerData 検証:');
+                console.log('- customerData.name:', customerData.name);
+                console.log('- customerData.phone:', customerData.phone);
+                console.log('- customerData.carModel:', customerData.carModel);
+                console.log('- customerData.isLightVehicle:', customerData.isLightVehicle);
+                console.log('- currentUserId:', currentUserId);
+                
+                if (!customerData.name) {
+                    throw new Error('customerData.name が空です');
+                }
+                if (!customerData.phone) {
+                    throw new Error('customerData.phone が空です');
+                }
+                if (!customerData.carModel) {
+                    throw new Error('customerData.carModel が空です');
+                }
+                if (!currentUserId) {
+                    throw new Error('currentUserId が空です');
+                }
+                
+                const customerInfo = {
+                    customer_name: customerData.name,
+                    customer_phone: customerData.phone,
+                    car_model: customerData.carModel,
+                    is_light_vehicle: customerData.isLightVehicle ? 1 : 0,
+                    line_user_id: currentUserId
+                };
+
+                console.log('API送信データ事前検証:');
+                console.log('- customer_name:', customerInfo.customer_name, '(type:', typeof customerInfo.customer_name, ')');
+                console.log('- customer_phone:', customerInfo.customer_phone, '(type:', typeof customerInfo.customer_phone, ')');
+                console.log('- car_model:', customerInfo.car_model, '(type:', typeof customerInfo.car_model, ')');
+                console.log('- is_light_vehicle:', customerInfo.is_light_vehicle, '(type:', typeof customerInfo.is_light_vehicle, ')');
+                console.log('- line_user_id:', customerInfo.line_user_id, '(type:', typeof customerInfo.line_user_id, ')');
+                console.log('完全な送信データ:', JSON.stringify(customerInfo, null, 2));
+
+                console.log('API呼び出し開始:', `${CommonLib.CONFIG.API_BASE}/api/customers/register`);
+                console.log('送信ヘッダー:', {
+                    'Content-Type': 'application/json'
+                });
+                console.log('送信ボディ:', JSON.stringify(customerInfo));
+                
+                const response = await fetch(`${CommonLib.CONFIG.API_BASE}/api/customers/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(customerInfo),
+                });
+
+                console.log('API レスポンス状態:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok,
+                    headers: response.headers
+                });
+                
+                // レスポンステキストを先に取得してログ出力
+                const responseText = await response.text();
+                console.log('APIレスポンス生テキスト:', responseText);
+                
+                // JSONパース試行
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                    console.log('APIレスポンスJSON:', result);
+                } catch (parseError) {
+                    console.error('JSONパースエラー:', parseError.message);
+                    throw new Error(`サーバーからの応答が不正です: ${responseText}`);
+                }
+                
+                // CommonLib.handleApiResponseの代わりに直接処理
+                if (!response.ok) {
+                    console.error('API Error:', response.status, responseText);
+                    throw new Error(`API Error: ${response.status} - ${responseText}`);
+                }
+                
+                if (result.success === false) {
+                    console.error('API Business Error:', result);
+                    throw new Error(result.error || result.message || 'API request failed');
+                }
+
+                console.log('顧客登録成功:', result);
+                console.log('登録データ:', result.data);
+                
+                // 完了画面表示
+                showCompletionStep();
+
+            } catch (error) {
+                console.error('顧客登録エラー詳細:', {
+                    message: error.message,
+                    stack: error.stack,
+                    customerData: customerData,
+                    currentUserId: currentUserId
+                });
+                
+                let errorMessage = '登録に失敗しました';
+                if (error.message.includes('validation_errors')) {
+                    errorMessage = 'フォームの入力内容を確認してください';
+                } else if (error.message.includes('既に登録済み')) {
+                    errorMessage = '既に登録済みのお客様です';
+                } else {
+                    errorMessage = `登録に失敗しました: ${error.message}`;
+                }
+                
+                alert(errorMessage);
+            } finally {
+                registerButton.disabled = false;
+                registerButton.textContent = originalText;
+            }
+        }
+
+        // 完了画面表示
+        function showCompletionStep() {
+            updateStepIndicator(3);
+            
+            // 画面切り替え
+            document.getElementById('input-form').classList.add('hidden');
+            document.getElementById('confirmation-form').classList.add('hidden');
+            document.getElementById('completion-form').classList.remove('hidden');
+            
+            // カウントダウン開始
+            let countdown = 3;
+            const countdownElement = document.getElementById('countdown');
+            
+            const timer = setInterval(() => {
+                countdown--;
+                if (countdownElement) {
+                    countdownElement.textContent = countdown;
+                }
+                
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    // 元の画面にリダイレクト
+                    const returnUrl = new URLSearchParams(window.location.search).get('return') || './index.html';
+                    window.location.href = returnUrl;
+                }
+            }, 1000);
+        }
+</script>
+</body>
+</html>

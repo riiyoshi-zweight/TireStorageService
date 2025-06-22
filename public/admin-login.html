@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理者ログイン - タイヤ保管予約システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0cc0df 0%, #0ab5d1 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #0cc0df, #0ab5d1);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .logo-subtitle {
+            color: #0cc0df;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .admin-badge {
+            background: #0cc0df;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 10px auto;
+            display: inline-block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #0cc0df;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(12, 192, 223, 0.1);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 16px;
+            background: #0cc0df;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .login-btn:hover:not(:disabled) {
+            background: #0ab5d1;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(12, 192, 223, 0.3);
+        }
+        
+        .login-btn:active {
+            transform: translateY(0);
+        }
+        
+        .login-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid #c33;
+            display: none;
+        }
+        
+        .success-message {
+            background: #e3f2fd;
+            color: #0cc0df;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid #0cc0df;
+            display: none;
+        }
+        
+        .info-panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+            border-left: 4px solid #0cc0df;
+        }
+        
+        .info-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .info-text {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .demo-credentials {
+            background: #e3f2fd;
+            border: 1px solid #0cc0df;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .demo-title {
+            font-weight: 600;
+            color: #0ab5d1;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .demo-item {
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #0ab5d1;
+        }
+        
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .login-btn-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+            
+            .logo-text {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <div class="logo-text">管理者ログイン</div>
+            <div class="logo-subtitle">まるごとおまかせタイヤ保管</div>
+            <div class="admin-badge">管理者専用</div>
+        </div>
+        
+        <div id="error-message" class="error-message"></div>
+        <div id="success-message" class="success-message"></div>
+        
+        <form id="login-form">
+            <div class="form-group">
+                <label class="form-label" for="username">ユーザー名</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    class="form-input" 
+                    placeholder="管理者ユーザー名を入力"
+                    required
+                    autocomplete="username"
+                >
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="password">パスワード</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input" 
+                    placeholder="パスワードを入力"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+            
+            <button type="submit" id="login-btn" class="login-btn">
+                <div class="login-btn-content">
+                    <div id="loading-spinner" class="loading-spinner"></div>
+                    <span id="login-btn-text">ログイン</span>
+                </div>
+            </button>
+        </form>
+        <div class="info-panel">
+            <div class="info-title">セキュリティについて</div>
+            <div class="info-text">
+                この管理画面は独立した認証システムを使用しています。<br>
+                LINEログインは不要です。ユーザー名とパスワードのみでログインできます。
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理者専用ライブラリ（LIFF なし） -->
+    <script src="./js/admin-common.js"></script>
+    
+    <script>
+        // DOM要素取得
+        const loginForm = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('login-btn');
+        const loginBtnText = document.getElementById('login-btn-text');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+
+        /**
+         * エラーメッセージ表示
+         * @param {string} message - エラーメッセージ
+         */
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        /**
+         * 成功メッセージ表示
+         * @param {string} message - 成功メッセージ
+         */
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+
+        /**
+         * メッセージクリア
+         */
+        function clearMessages() {
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+        }
+
+        /**
+         * ローディング状態設定
+         * @param {boolean} isLoading - ローディング中かどうか
+         */
+        function setLoading(isLoading) {
+            loginBtn.disabled = isLoading;
+            
+            if (isLoading) {
+                loadingSpinner.style.display = 'block';
+                loginBtnText.textContent = 'ログイン中...';
+            } else {
+                loadingSpinner.style.display = 'none';
+                loginBtnText.textContent = 'ログイン';
+            }
+        }
+
+        /**
+         * ログイン実行
+         * @param {string} username - ユーザー名
+         * @param {string} password - パスワード
+         */
+        async function performLogin(username, password) {
+            try {
+                setLoading(true);
+                clearMessages();
+
+                // AdminCommonLib を使用してログイン
+                const result = await AdminCommonLib.performAdminLogin(username, password);
+
+                if (result.success) {
+                    showSuccess('ログインに成功しました。画面に移動します...');
+                    
+                    // URLパラメータからリダイレクト先を取得
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const redirectUrl = urlParams.get('redirect');
+                    
+                    // リダイレクト先を決定
+                    let targetUrl = './admin-calendar.html'; // デフォルト
+                    
+                    if (redirectUrl) {
+                        // パラメータで指定された場合
+                        if (redirectUrl.startsWith('./') || redirectUrl.startsWith('/')) {
+                            targetUrl = redirectUrl;
+                        } else {
+                            // 相対パスに変換
+                            targetUrl = './' + redirectUrl.replace(/^\/+/, '');
+                        }
+                    }
+                    
+                    // 1.5秒後に指定された画面にリダイレクト
+                    setTimeout(() => {
+                        window.location.href = targetUrl;
+                    }, 1500);
+                } else {
+                    throw new Error(result.error || 'ログインに失敗しました');
+                }
+
+            } catch (error) {
+                let errorMsg = 'ログインに失敗しました';
+                
+                if (error.message.includes('401')) {
+                    errorMsg = 'ユーザー名またはパスワードが正しくありません';
+                } else if (error.message.includes('500')) {
+                    errorMsg = 'サーバーエラーが発生しました';
+                } else if (error.message.includes('fetch')) {
+                    errorMsg = 'サーバーに接続できません';
+                } else {
+                    errorMsg = error.message;
+                }
+                
+                showError(errorMsg);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        /**
+         * フォーム送信処理
+         */
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            // バリデーション
+            if (!username) {
+                showError('ユーザー名を入力してください');
+                usernameInput.focus();
+                return;
+            }
+
+            if (!password) {
+                showError('パスワードを入力してください');
+                passwordInput.focus();
+                return;
+            }
+
+            // ログイン実行
+            await performLogin(username, password);
+        });
+
+        /**
+         * 既存セッション確認
+         */
+        async function checkExistingSession() {
+            try {
+                const session = await AdminCommonLib.checkAdminAuth();
+                
+                if (session) {
+                    // URLパラメータからリダイレクト先を取得
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const redirectUrl = urlParams.get('redirect');
+                    
+                    // リダイレクト先を決定
+                    let targetUrl = './admin-calendar.html'; // デフォルト
+                    
+                    if (redirectUrl) {
+                        if (redirectUrl.startsWith('./') || redirectUrl.startsWith('/')) {
+                            targetUrl = redirectUrl;
+                        } else {
+                            targetUrl = './' + redirectUrl.replace(/^\/+/, '');
+                        }
+                    }
+                    
+                    showSuccess('既にログインしています。画面に移動します...');
+                    
+                    setTimeout(() => {
+                        window.location.href = targetUrl;
+                    }, 1000);
+                }
+            } catch (error) {
+                // 新規ログインが必要
+            }
+        }
+
+        /**
+         * Enterキー押下でログイン
+         */
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !loginBtn.disabled) {
+                loginForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        /**
+         * 初期化
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            // 既存セッション確認
+            checkExistingSession();
+            
+            // フォーカス設定
+            usernameInput.focus();
+        });
+    </script>
+</body>
+</html>

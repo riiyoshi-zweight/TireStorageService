@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>タイヤ保管予約</title>
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <!-- 共通処理 -->
+    <script src="./js/common.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #0cc0df;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .week-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .nav-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-button:disabled {
+            color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .week-display {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .reservation-table {
+            flex: 1;
+            margin: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            position: relative;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        .table-header {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .table-header th {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+            border-right: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+
+        .table-header th:first-child {
+            width: 80px;
+            background: #f8f9fa;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            border-right: 2px solid #e9ecef;
+        }
+
+        .table-header th:last-child {
+            border-right: none;
+        }
+
+        .time-column {
+            width: 80px;
+            background: #fff;
+            text-align: center;
+            padding: 12px 6px;
+            font-weight: 600;
+            color: #333;
+            border-right: 2px solid #e9ecef;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+
+        .slot-cell {
+            text-align: center;
+            padding: 15px 8px;
+            border-right: 1px solid #e9ecef;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+
+        .slot-cell:last-child {
+            border-right: none;
+        }
+
+        .slot-cell.available {
+            background: #fff;
+        }
+
+        .slot-cell.available:hover {
+            background: #e3f2fd;
+        }
+
+        .slot-cell.unavailable {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .slot-cell.selected {
+            background: #e3f2fd;
+            border: 2px solid #0cc0df;
+        }
+
+        .slot-symbol {
+            font-size: 20px;
+            display: block;
+        }
+
+        .available .slot-symbol {
+            color: #0cc0df;
+        }
+
+        .unavailable .slot-symbol {
+            color: #ccc;
+        }
+
+        .footer {
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        }
+
+        .selection-info {
+            text-align: left;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .selection-status {
+            background: #0cc0df;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 15px;
+            white-space: nowrap;
+        }
+
+        .selection-datetime {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .reserve-button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reserve-button:disabled {
+            background: #ccc;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .reserve-button.loading {
+            background: #0ab5d1;
+            color: white;
+            position: relative;
+        }
+
+        .reserve-button.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            margin: auto;
+            border: 2px solid transparent;
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 1s ease infinite;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        @keyframes spin {
+            0% { transform: translateY(-50%) rotate(0deg); }
+            100% { transform: translateY(-50%) rotate(360deg); }
+        }
+
+        .reserve-button:enabled {
+            background: #0cc0df;
+            color: white;
+        }
+
+        .reserve-button:enabled:hover {
+            background: #0ab5d1;
+            transform: translateY(-1px);
+        }
+
+        /* モーダル */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 300px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .modal-datetime {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0cc0df;
+            margin: 15px 0;
+        }
+
+        .modal-button {
+            width: 100%;
+            padding: 12px;
+            background: #0cc0df;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .modal-button:hover {
+            background: #0ab5d1;
+        }
+
+        .modal-button.cancel {
+            background: #ccc;
+            color: white;
+            margin-top: 8px;
+        }
+
+        .modal-button.cancel:hover {
+            background: #bbb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* データ同期インジケーター */
+        .sync-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #0cc0df;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 999;
+            display: none;
+        }
+
+        .sync-indicator.syncing {
+            display: block;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 18px;
+            }
+            
+            .week-display {
+                font-size: 16px;
+            }
+            
+            .nav-button {
+                font-size: 20px;
+            }
+            
+            .reservation-table {
+                margin: 10px;
+            }
+            
+            .table-header th,
+            .time-column,
+            .slot-cell {
+                padding: 8px 4px;
+                font-size: 12px;
+            }
+            
+            .slot-symbol {
+                font-size: 16px;
+            }
+
+            .selection-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .selection-status {
+                margin-bottom: 8px;
+                margin-right: 0;
+            }
+
+            .table-header th:first-child,
+            .time-column {
+                font-size: 11px;
+                padding: 8px 2px;
+            }
+        }
+
+        /* デバッグ用スタイル */
+        .debug-info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 1001;
+        }
+    </style>
+</head>
+<body>
+    <!-- データ同期インジケーター -->
+    <div class="sync-indicator" id="syncIndicator">
+        カレンダー更新中...
+    </div>
+
+    <!-- デバッグ情報表示 -->
+    <div class="debug-info" id="debugInfo" style="display: none;">
+        <div>現在時刻: <span id="debugCurrentTime"></span></div>
+        <div>タイムゾーン: <span id="debugTimezone"></span></div>
+        <div>選択日時: <span id="debugSelectedSlot"></span></div>
+    </div>
+
+    <div class="header">
+        <h1 id="headerTitle">まるごとおまかせタイヤ保管</h1>
+        <div class="week-navigation" id="weekNav">
+            <button class="nav-button" id="prevWeek" disabled>‹</button>
+            <div class="week-display" id="weekDisplay"></div>
+            <button class="nav-button" id="nextWeek">›</button>
+        </div>
+    </div>
+
+    <!-- 予約テーブル -->
+    <div class="reservation-table" id="reservationTable">
+        <div class="table-container">
+            <table>
+                <thead class="table-header">
+                    <tr id="dateHeader">
+                        <th>時間</th>
+                        <!-- 日付ヘッダーはJavaScriptで生成 -->
+                    </tr>
+                </thead>
+                <tbody id="timeSlots">
+                    <!-- 時間スロットはJavaScriptで生成 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer" id="footerSection">
+        <div class="selection-info">
+            <div class="selection-status" id="selectionStatus">未選択</div>
+            <div class="selection-datetime" id="selectionDatetime">予約する日を選択してください。</div>
+        </div>
+        <button class="reserve-button" id="reserveButton" disabled>予約</button>
+    </div>
+
+    <!-- 確認モーダル -->
+    <div class="modal-overlay hidden" id="confirmModal">
+        <div class="modal">
+            <h3>予約を確定します。</h3>
+            <p>以下の日程でお間違えがないかご確認の上、予約を確定してください。</p>
+            <div class="modal-datetime" id="confirmDatetime"></div>
+            <button class="modal-button" id="confirmButton">確定</button>
+            <button class="modal-button cancel" id="cancelButton">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- 予約完了モーダル -->
+    <div class="modal-overlay hidden" id="completionModal">
+        <div class="modal">
+            <h3>予約が確定しました。</h3>
+            <p>予約の詳細につきましては、トーク画面の「予約確認」からご確認いただけます。</p>
+            <p>ご利用ありがとうございました。</p>
+            <button class="modal-button" id="closeButton">終了する</button>
+        </div>
+    </div>
+
+    <!-- 予約失敗モーダル -->
+    <div class="modal-overlay hidden" id="errorModal">
+        <div class="modal">
+            <h3>予約に失敗しました</h3>
+            <p>予約情報の登録に失敗しました。再度ご予約をお願いします。</p>
+            <p>エラーが続く場合は恐れ入りますが、トークメニューよりお問い合わせください。</p>
+            <button class="modal-button" id="errorCloseButton">閉じる</button>
+        </div>
+    </div>
+
+    <script>
+        // ==============================================
+        // タイムゾーン修正用ユーティリティ関数
+        // ==============================================
+        
+        /**
+         * 日付をローカルタイムゾーンベースでYYYY-MM-DD形式に変換
+         * toISOString()の代替として使用
+         */
+        function formatDateLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        /**
+         * YYYY-MM-DD文字列からローカルタイムゾーンのDateオブジェクトを作成
+         */
+        function createLocalDate(dateString) {
+            const [year, month, day] = dateString.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        /**
+         * 時間をリセットして日付のみにする（修正版）
+         */
+        function resetTimeLocal(date) {
+            const newDate = new Date(date);
+            newDate.setHours(0, 0, 0, 0);
+            return newDate;
+        }
+
+        /**
+         * 週の開始日を取得（修正版）
+         */
+        function getWeekStartLocal(date) {
+            const d = new Date(date);
+            return resetTimeLocal(d);
+        }
+
+        /**
+         * 日付比較用ユーティリティ
+         */
+        function isSameDate(date1, date2) {
+            return formatDateLocal(date1) === formatDateLocal(date2);
+        }
+
+        /**
+         * デバッグ情報更新
+         */
+        function updateDebugInfo() {
+            const debugInfo = document.getElementById('debugInfo');
+            if (debugInfo && window.location.search.includes('debug=1')) {
+                debugInfo.style.display = 'block';
+                document.getElementById('debugCurrentTime').textContent = new Date().toLocaleString('ja-JP');
+                document.getElementById('debugTimezone').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                document.getElementById('debugSelectedSlot').textContent = selectedSlot ? 
+                    `${formatDateLocal(selectedSlot.date)} ${selectedSlot.time}` : '未選択';
+            }
+        }
+
+        console.log('タイムゾーン修正ユーティリティ読み込み完了');
+
+        // ==============================================
+        // メイン変数定義
+        // ==============================================
+        
+        let currentWeekStart = new Date();
+        let selectedSlot = null;
+        let businessSettings = {};
+        let availableDates = [];
+        let currentUserId = null;
+        let customerData = null;
+
+        // ==============================================
+        // 初期化処理（修正版：既存予約チェック追加）
+        // ==============================================
+
+        // ページ初期化
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                CommonLib.showLoading('初期化中...');
+                
+                console.log('予約画面初期化開始');
+                
+                // Step 1: 認証のみ実行
+                const authResult = await CommonLib.initializePageAuth('予約');
+                if (!authResult) {
+                    return;
+                }
+                
+                currentUserId = authResult.userId;
+                console.log('認証完了 USER_ID:', currentUserId);
+                
+                // Step 2: 既存予約チェック
+                console.log('既存予約チェック開始...');
+                const hasExistingReservation = await checkExistingReservation(currentUserId);
+                
+                if (hasExistingReservation) {
+                    console.log('既存予約あり - 専用画面にリダイレクト');
+                    CommonLib.redirectToPage('./reservation-exists.html', '予約確認');
+                    return;
+                }
+                
+                console.log('既存予約なし - 通常の予約フローを継続');
+                
+                // Step 3: 顧客確認
+                const customerResult = await CommonLib.checkCustomer(currentUserId);
+                if (!customerResult.exists) {
+                    console.log('未登録顧客 - 登録画面にリダイレクト');
+                    CommonLib.redirectToPage('./customer-info-register.html', '顧客登録', {
+                        return: window.location.pathname + window.location.search
+                    });
+                    return;
+                }
+                
+                customerData = customerResult.customer;
+                console.log('顧客確認完了:', customerData.customer_name);
+                
+                // Step 4: 予約システム初期化
+                await initializeReservationSystem();
+                
+            } catch (error) {
+                console.error('予約画面初期化エラー:', error);
+                CommonLib.showErrorScreen(error.message);
+            } finally {
+                CommonLib.hideLoading();
+            }
+        });
+
+        /**
+         * 🔍【新規追加】既存予約チェック
+         */
+        async function checkExistingReservation(userId) {
+            try {
+                console.log('既存予約チェック実行:', userId);
+                
+                const response = await fetch(`${CommonLib.CONFIG.API_BASE}/api/reservations/check/${userId}`);
+                const result = await CommonLib.handleApiResponse(response);
+                
+                console.log('予約チェック結果:', result);
+                
+                if (!result.success) {
+                    // API失敗時は予約なしとして継続
+                    console.warn('予約チェックAPI失敗 - 予約なしとして継続');
+                    return false;
+                }
+                
+                return result.has_reservation || false;
+                
+            } catch (error) {
+                console.error('既存予約チェックエラー:', error);
+                // エラー時は予約なしとして継続（安全側の動作）
+                return false;
+            }
+        }
+
+        // 予約システム初期化
+        async function initializeReservationSystem() {
+            currentWeekStart = getWeekStartLocal(new Date());
+            
+            await Promise.all([
+                fetchBusinessSettings(),
+                fetchAvailableDates()
+            ]);
+
+            updateWeekDisplay();
+            generateTable();
+            updateFooter();
+            setupEventListeners();
+            updateDebugInfo();
+        }
+
+        // ==============================================
+        // データ取得処理
+        // ==============================================
+
+        // 営業設定を取得
+        async function fetchBusinessSettings() {
+            try {
+                console.log('営業設定取得中...');
+                
+                const response = await fetch(`${CommonLib.CONFIG.API_BASE}/api/available-dates/settings`);
+                const result = await CommonLib.handleApiResponse(response);
+                
+                if (result.success && result.settings) {
+                    businessSettings = {
+                        business_start_time: result.settings.business_hours_start?.value || '09:00',
+                        business_end_time: result.settings.business_hours_end?.value || '18:00',
+                        slot_interval_minutes: parseInt(result.settings.reservation_interval_minutes?.value || '30')
+                    };
+                } else {
+                    throw new Error('Invalid settings response format');
+                }
+                
+                console.log('営業設定取得完了:', businessSettings);
+                
+            } catch (error) {
+                console.error('営業設定取得失敗:', error);
+                businessSettings = {
+                    business_start_time: '09:00',
+                    business_end_time: '18:00',
+                    slot_interval_minutes: 30
+                };
+            }
+        }
+
+        // 予約可能日を取得
+        async function fetchAvailableDates() {
+            try {
+                console.log('利用可能日程取得中...');
+                
+                const response = await fetch(`${CommonLib.CONFIG.API_BASE}/api/available-dates`);
+                const data = await CommonLib.handleApiResponse(response);
+                
+                if (Array.isArray(data)) {
+                    availableDates = data;
+                } else if (data.success && Array.isArray(data.data)) {
+                    availableDates = data.data;
+                } else {
+                    availableDates = [];
+                }
+                
+                console.log('利用可能日程取得完了:', availableDates.length, '件');
+                
+            } catch (error) {
+                console.error('利用可能日程取得失敗:', error);
+                availableDates = [];
+            }
+        }
+
+        // ==============================================
+        // UI生成処理
+        // ==============================================
+
+        // 時間スロットを生成
+        function generateTimeSlots() {
+            const slots = [];
+            const startTime = businessSettings.business_start_time || '09:00';
+            const endTime = businessSettings.business_end_time || '18:00';
+            const intervalMinutes = businessSettings.slot_interval_minutes || 30;
+            
+            const [startHour, startMinute] = startTime.split(':').map(Number);
+            const [endHour, endMinute] = endTime.split(':').map(Number);
+            
+            let currentTime = new Date();
+            currentTime.setHours(startHour, startMinute, 0, 0);
+            
+            const endTimeObj = new Date();
+            endTimeObj.setHours(endHour, endMinute, 0, 0);
+
+            while (currentTime < endTimeObj) {
+                const timeString = currentTime.toTimeString().slice(0, 5);
+                slots.push(timeString);
+                currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);
+            }
+
+            return slots;
+        }
+
+        // 週表示を更新
+        function updateWeekDisplay() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            
+            const startStr = `${currentWeekStart.getMonth() + 1}/${currentWeekStart.getDate()}`;
+            const endStr = `${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
+            
+            document.getElementById('weekDisplay').textContent = `${startStr} - ${endStr}`;
+            
+            const today = resetTimeLocal(new Date());
+            
+            document.getElementById('prevWeek').disabled = currentWeekStart <= today;
+            
+            const maxDate = new Date();
+            maxDate.setMonth(maxDate.getMonth() + 3);
+            const maxDateReset = resetTimeLocal(maxDate);
+            
+            document.getElementById('nextWeek').disabled = currentWeekStart >= maxDateReset;
+        }
+
+        // 特定のスロットが予約可能かどうかをチェック（修正版）
+        function isSlotAvailable(date, time) {
+            const dateStr = formatDateLocal(date); // 修正: toISOString()を削除
+            const timeStr = time + ':00';
+            
+            const available = availableDates.some(slot => {
+                const availDate = slot.available_date || slot.date;
+                const availTime = slot.available_time || slot.time;
+                return availDate === dateStr && 
+                       availTime === timeStr &&
+                       (slot.is_active === undefined || slot.is_active === 1);
+            });
+            
+            console.log(`スロット可用性チェック: ${dateStr} ${timeStr} = ${available}`);
+            return available;
+        }
+
+        // テーブルを生成（修正版）
+        function generateTable() {
+            const dateHeader = document.getElementById('dateHeader');
+            const timeSlots = document.getElementById('timeSlots');
+            
+            dateHeader.innerHTML = '<th>時間</th>';
+            timeSlots.innerHTML = '';
+
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(date.getDate() + i);
+                weekDates.push(date);
+                
+                const th = document.createElement('th');
+                const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+                th.textContent = `${date.getMonth() + 1}/${date.getDate()}(${dayNames[date.getDay()]})`;
+                
+                // デバッグ情報をツールチップに追加
+                th.title = `実際の日付: ${formatDateLocal(date)}`;
+                
+                dateHeader.appendChild(th);
+            }
+
+            const timeSlotList = generateTimeSlots();
+            timeSlotList.forEach(time => {
+                const tr = document.createElement('tr');
+                
+                const timeCell = document.createElement('td');
+                timeCell.className = 'time-column';
+                timeCell.textContent = time;
+                tr.appendChild(timeCell);
+
+                weekDates.forEach((date, dayIndex) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'slot-cell';
+                    
+                    const symbol = document.createElement('span');
+                    symbol.className = 'slot-symbol';
+                    
+                    const isAvailable = isSlotAvailable(date, time);
+                    
+                    // デバッグ情報をツールチップに追加
+                    const debugInfo = `日付: ${formatDateLocal(date)}\n時間: ${time}\n利用可能: ${isAvailable}`;
+                    cell.title = debugInfo;
+                    
+                    if (isAvailable) {
+                        cell.classList.add('available');
+                        symbol.textContent = '○';
+                        cell.addEventListener('click', () => selectSlot(date, time, cell));
+                    } else {
+                        cell.classList.add('unavailable');
+                        symbol.textContent = '×';
+                    }
+                    
+                    cell.appendChild(symbol);
+                    tr.appendChild(cell);
+                });
+
+                timeSlots.appendChild(tr);
+            });
+            
+            console.log('カレンダー生成完了 - 利用可能スロット:', availableDates.length, '件');
+            updateDebugInfo();
+        }
+
+        // ==============================================
+        // イベント処理
+        // ==============================================
+
+        // スロット選択（修正版）
+        function selectSlot(date, time, cellElement) {
+            console.log('スロット選択:', formatDateLocal(date), time);
+            
+            // 選択時に再度可用性をチェック
+            if (!isSlotAvailable(date, time)) {
+                alert('申し訳ございませんが、この時間枠は既に予約済みです。');
+                return;
+            }
+
+            document.querySelectorAll('.slot-cell.selected').forEach(cell => {
+                cell.classList.remove('selected');
+            });
+
+            cellElement.classList.add('selected');
+            selectedSlot = { date: new Date(date), time }; // 新しいDateオブジェクトを作成
+            updateFooter();
+            updateDebugInfo();
+        }
+
+        // フッター更新（修正版）
+        function updateFooter() {
+            const statusElement = document.getElementById('selectionStatus');
+            const datetimeElement = document.getElementById('selectionDatetime');
+            const buttonElement = document.getElementById('reserveButton');
+
+            if (selectedSlot) {
+                statusElement.textContent = '選択中';
+                
+                const year = selectedSlot.date.getFullYear();
+                const month = String(selectedSlot.date.getMonth() + 1).padStart(2, '0');
+                const day = String(selectedSlot.date.getDate()).padStart(2, '0');
+                datetimeElement.textContent = `${year}/${month}/${day} ${selectedSlot.time}`;
+                
+                buttonElement.disabled = false;
+                buttonElement.textContent = '予約';
+            } else {
+                statusElement.textContent = '未選択';
+                datetimeElement.textContent = '予約する日を選択してください。';
+                buttonElement.disabled = true;
+                buttonElement.textContent = '予約';
+            }
+        }
+
+        // 予約確認モーダルを表示
+        function showConfirmModal() {
+            if (!selectedSlot) return;
+
+            const year = selectedSlot.date.getFullYear();
+            const month = String(selectedSlot.date.getMonth() + 1).padStart(2, '0');
+            const day = String(selectedSlot.date.getDate()).padStart(2, '0');
+            const datetime = `${year}/${month}/${day} ${selectedSlot.time}`;
+
+            document.getElementById('confirmDatetime').textContent = datetime;
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        // 予約を確定（修正版）
+        async function confirmReservation() {
+            if (!selectedSlot) return;
+
+            console.log('=== 予約確定開始 ===');
+
+            const confirmButton = document.getElementById('confirmButton');
+            const originalText = confirmButton.textContent;
+            confirmButton.disabled = true;
+            confirmButton.classList.add('loading');
+            confirmButton.textContent = '処理中...';
+
+            try {
+                const dateStr = formatDateLocal(selectedSlot.date); // 修正: toISOString()を削除
+                const timeStr = selectedSlot.time + ':00';
+                
+                console.log('検索条件:', { dateStr, timeStr });
+                
+                const availableSlot = availableDates.find(slot => {
+                    const availDate = slot.available_date || slot.date;
+                    const availTime = slot.available_time || slot.time;
+                    const match = availDate === dateStr && availTime === timeStr;
+                    console.log(`比較: ${availDate} === ${dateStr} && ${availTime} === ${timeStr} = ${match}`);
+                    return match;
+                });
+                
+                if (!availableSlot) {
+                    console.error('利用可能スロットが見つかりません');
+                    console.log('利用可能スロット一覧:', availableDates);
+                    throw new Error('選択された時間枠が見つかりません');
+                }
+
+                console.log('利用可能スロット発見:', availableSlot);
+
+                const reservationData = {
+                    available_date_id: availableSlot.available_date_id,
+                    line_user_id: currentUserId
+                };
+
+                console.log('予約データ:', reservationData);
+
+                const response = await fetch(`${CommonLib.CONFIG.API_BASE}/api/reservations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(reservationData)
+                });
+
+                const result = await CommonLib.handleApiResponse(response);
+
+                console.log('予約成功:', result);
+                
+                closeModal();
+                
+                // 予約成功後の確実なデータ再取得
+                showSyncIndicator();
+                
+                // 選択状態をクリア
+                selectedSlot = null;
+                updateFooter();
+                updateDebugInfo();
+                
+                // サーバーから最新データを再取得
+                try {
+                    console.log('最新データを再取得中...');
+                    await fetchAvailableDates();
+                    generateTable();
+                    console.log('データ再取得完了');
+                } catch (syncError) {
+                    console.error('データ再取得エラー:', syncError);
+                    alert('カレンダーの更新に失敗しました。ページを再読み込みしてください。');
+                } finally {
+                    hideSyncIndicator();
+                }
+                
+                // 予約完了モーダルを表示
+                setTimeout(() => {
+                    showCompletionModal();
+                }, 500);
+
+            } catch (error) {
+                console.error('予約エラー:', error);
+                closeModal();
+                showErrorModal();
+            } finally {
+                confirmButton.disabled = false;
+                confirmButton.classList.remove('loading');
+                confirmButton.textContent = originalText;
+            }
+        }
+
+        // ==============================================
+        // モーダル処理
+        // ==============================================
+
+        function showCompletionModal() {
+            document.getElementById('completionModal').classList.remove('hidden');
+        }
+
+        function closeCompletionModal() {
+            document.getElementById('completionModal').classList.add('hidden');
+            
+            try {
+                if (typeof liff !== 'undefined' && liff.isInClient()) {
+                    console.log('LIFFクライアント内で実行中 - closeWindow()');
+                    liff.closeWindow();
+                } else {
+                    console.log('外部ブラウザで実行中');
+                    alert('予約が完了しました。このタブを閉じてLINEに戻ってください。');
+                }
+            } catch (closeError) {
+                console.error('LIFF終了エラー:', closeError);
+                try {
+                    window.close();
+                } catch (fallbackError) {
+                    alert('予約が完了しました。このタブを閉じてLINEに戻ってください。');
+                }
+            }
+        }
+
+        function showErrorModal() {
+            document.getElementById('errorModal').classList.remove('hidden');
+        }
+
+        function closeErrorModal() {
+            document.getElementById('errorModal').classList.add('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+        }
+
+        // ==============================================
+        // ユーティリティ
+        // ==============================================
+
+        function showSyncIndicator() {
+            document.getElementById('syncIndicator').classList.add('syncing');
+        }
+
+        function hideSyncIndicator() {
+            document.getElementById('syncIndicator').classList.remove('syncing');
+        }
+
+        // ==============================================
+        // イベントリスナー設定
+        // ==============================================
+
+        function setupEventListeners() {
+            const prevWeekButton = document.getElementById('prevWeek');
+            if (prevWeekButton) {
+                prevWeekButton.addEventListener('click', async function() {
+                    console.log('⬅前の週をクリック');
+                    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+                    updateWeekDisplay();
+                    showSyncIndicator();
+                    await fetchAvailableDates();
+                    generateTable();
+                    hideSyncIndicator();
+                    selectedSlot = null;
+                    updateFooter();
+                    updateDebugInfo();
+                });
+            }
+
+            const nextWeekButton = document.getElementById('nextWeek');
+            if (nextWeekButton) {
+                nextWeekButton.addEventListener('click', async function() {
+                    console.log('次の週をクリック');
+                    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+                    updateWeekDisplay();
+                    showSyncIndicator();
+                    await fetchAvailableDates();
+                    generateTable();
+                    hideSyncIndicator();
+                    selectedSlot = null;
+                    updateFooter();
+                    updateDebugInfo();
+                });
+            }
+
+            document.getElementById('reserveButton')?.addEventListener('click', showConfirmModal);
+            document.getElementById('confirmButton')?.addEventListener('click', confirmReservation);
+            document.getElementById('cancelButton')?.addEventListener('click', closeModal);
+            document.getElementById('closeButton')?.addEventListener('click', closeCompletionModal);
+            document.getElementById('errorCloseButton')?.addEventListener('click', closeErrorModal);
+
+            // モーダル背景クリックで閉じる
+            const modals = ['confirmModal', 'completionModal', 'errorModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === this) {
+                            if (modalId === 'confirmModal') closeModal();
+                            else if (modalId === 'completionModal') closeCompletionModal();
+                            else if (modalId === 'errorModal') closeErrorModal();
+                        }
+                    });
+                }
+            });
+
+            // デバッグモード切り替え（Ctrl+Shift+D）
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+                    const debugInfo = document.getElementById('debugInfo');
+                    debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+                    updateDebugInfo();
+                }
+            });
+        }
+
+        console.log('タイムゾーン修正版 index.html 読み込み完了（既存予約チェック機能付き）');
+    </script>
+</body>
+</html>

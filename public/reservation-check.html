@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>予約確認 - タイヤ保管</title>
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <!-- 共通処理 -->
+    <script src="./js/common.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #0cc0df;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .icon.success {
+            color: #0cc0df;
+        }
+
+        .icon.info {
+            color: #17a2b8;
+        }
+
+        .icon.warning {
+            color: #ffc107;
+        }
+
+        .message {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .reservation-details {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .reservation-details h3 {
+            color: #0cc0df;
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .detail-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .store-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+
+        .store-name {
+            font-weight: 600;
+            color: #0cc0df;
+            margin-bottom: 5px;
+        }
+
+        .button {
+            background: #0cc0df;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .button:hover {
+            background: #0ab5d1;
+            transform: translateY(-1px);
+        }
+
+        .button.secondary {
+            background: #6c757d;
+        }
+
+        .button.secondary:hover {
+            background: #5a6268;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .loading .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0cc0df;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error-state {
+            color: #721c24;
+        }
+
+        .error-state .icon {
+            color: #dc3545;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 18px;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+            
+            .card {
+                padding: 25px 15px;
+            }
+            
+            .message {
+                font-size: 15px;
+            }
+            
+            .icon {
+                font-size: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>予約確認</h1>
+        <div class="subtitle">まるごとおまかせタイヤ保管</div>
+    </div>
+
+    <div class="content">
+        <!-- ローディング画面 -->
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <p>予約情報を確認しています...</p>
+        </div>
+
+        <!-- 予約あり状態 -->
+        <div id="reservationState" class="card hidden">
+            <div class="message" id="reservationMessage"></div>
+            
+            <div class="reservation-details" id="reservationDetails">
+                <h3>ご予約詳細</h3>
+                <div class="detail-item">
+                    <span class="detail-label">予約日時</span>
+                    <span class="detail-value" id="reservationDateTime"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">車種</span>
+                    <span class="detail-value" id="carModel"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">お客様名</span>
+                    <span class="detail-value" id="customerName"></span>
+                </div>
+                
+                <div class="store-info">
+                    <div class="store-name">ミスタータイマン高田店</div>
+                    <div>当日は上記車種にてお越しください</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 予約なし状態 -->
+        <div id="noReservationState" class="card hidden">
+            <div class="message">
+                現在ご予約はありません。
+            </div>
+            <button class="button" onclick="goToReservation()">
+                新しく予約する
+            </button>
+        </div>
+
+        <!-- エラー状態 -->
+        <div id="errorState" class="card hidden error-state">
+            <div class="message">
+                予約情報の取得に失敗しました。<br>
+                しばらく時間をおいて再度お試しください。
+            </div>
+            <button class="button secondary" onclick="retryCheck()">
+                再試行
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentUserId = null;
+        let customerData = null;
+
+        /**
+         * 状態表示
+         * @param {string} stateId - 表示する状態のID
+         */
+        function showState(stateId) {
+            const states = ['loadingState', 'reservationState', 'noReservationState', 'errorState'];
+            states.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(stateId).classList.remove('hidden');
+        }
+
+        // ページ初期化
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                CommonLib.showLoading('初期化中...');
+                
+                // 共通処理で初期化（顧客確認含む）
+                const authResult = await CommonLib.initializePageWithAuth('予約確認');
+                
+                if (!authResult) {
+                    // リダイレクト中またはエラー
+                    return;
+                }
+                
+                currentUserId = authResult.userId;
+                customerData = authResult.customer;
+                
+                // 予約確認処理実行
+                await checkReservation();
+                
+            } catch (error) {
+                CommonLib.showErrorScreen(error.message);
+            } finally {
+                CommonLib.hideLoading();
+            }
+        });
+
+        /**
+         * 予約確認メイン処理
+         */
+        async function checkReservation() {
+            try {
+                showState('loadingState');
+                
+                const apiUrl = `${CommonLib.CONFIG.API_BASE}/api/reservations/check/${currentUserId}`;
+                
+                const response = await fetch(apiUrl);
+                const result = await CommonLib.handleApiResponse(response);
+                
+                if (result.has_reservation) {
+                    // 予約あり
+                    const reservation = result.reservation;
+                    document.getElementById('reservationMessage').textContent = result.message;
+                    document.getElementById('reservationDateTime').textContent = 
+                        `${reservation.date} ${reservation.time}`;
+                    document.getElementById('carModel').textContent = reservation.car_model;
+                    document.getElementById('customerName').textContent = reservation.customer_name;
+                    
+                    showState('reservationState');
+                    
+                } else {
+                    // 予約なし
+                    showState('noReservationState');
+                }
+                
+            } catch (error) {
+                showState('errorState');
+            }
+        }
+
+        /**
+         * 予約画面への移動
+         */
+        function goToReservation() {
+            try {
+                if (typeof liff !== 'undefined' && liff.isInClient()) {
+                    // LIFFアプリ内からLIFFアプリを開く
+                    liff.openWindow({
+                        url: `${window.location.origin}/`,
+                        external: false
+                    });
+                } else {
+                    // 外部ブラウザの場合
+                    window.open(`${window.location.origin}/`, '_blank');
+                }
+            } catch (error) {
+                // フォールバック
+                window.open(`${window.location.origin}/`, '_blank');
+            }
+        }
+
+        /**
+         * 再試行
+         */
+        function retryCheck() {
+            checkReservation();
+        }
+    </script>
+</body>
+</html>

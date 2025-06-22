@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お客様情報編集 - まるごとおまかせタイヤ保管</title>
+    <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+    <script src="./js/common.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .header {
+            background-color: #00C2CC;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .info-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .loading-container {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .loading-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 24px;
+            border-bottom: 3px solid #00C2CC;
+            padding-bottom: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .required {
+            color: #ff4444;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s, background-color 0.3s;
+            background-color: white;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #00C2CC;
+            box-shadow: 0 0 0 3px rgba(0, 194, 204, 0.1);
+        }
+        
+        .form-input:disabled {
+            background-color: #f8f9fa;
+            color: #666;
+            cursor: not-allowed;
+        }
+        
+        .phone-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .phone-input {
+            flex: 1;
+            text-align: center;
+            font-family: monospace;
+        }
+        
+        .phone-separator {
+            font-size: 18px;
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .checkbox-input {
+            width: 20px;
+            height: 20px;
+            accent-color: #00C2CC;
+        }
+        
+        .checkbox-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .checkbox-label {
+            font-size: 16px;
+            color: #555;
+            cursor: pointer;
+        }
+        
+        .checkbox-input:disabled + .checkbox-label {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .action-button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            margin-top: 16px;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-1px);
+        }
+        
+        .action-button:active {
+            transform: translateY(0);
+        }
+        
+        .action-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .edit-button {
+            background-color: #ff9800;
+            color: white;
+        }
+        
+        .edit-button:hover {
+            background-color: #f57c00;
+        }
+        
+        .save-button {
+            background-color: #00C2CC;
+            color: white;
+        }
+        
+        .save-button:hover {
+            background-color: #00a8b0;
+        }
+        
+        .cancel-button {
+            background-color: #6c757d;
+            color: white;
+            margin-top: 8px;
+        }
+        
+        .cancel-button:hover {
+            background-color: #5a6268;
+        }
+        
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c62828;
+        }
+        
+        .success-message {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2e7d32;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .modal-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        
+        .modal-message {
+            color: #666;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        
+        .modal-button {
+            background-color: #00C2CC;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 32px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .modal-button:hover {
+            background-color: #00a8b0;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .field-error {
+            border-color: #ff4444 !important;
+            box-shadow: 0 0 0 3px rgba(255, 68, 68, 0.1) !important;
+        }
+        
+        .field-error-message {
+            color: #ff4444;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 お客様情報編集</h1>
+    </div>
+    
+    <div class="container">
+        <div class="info-card">
+            <div id="loading-container" class="loading-container">
+                <p style="color: #666; font-size: 16px;">お客様情報を読み込んでいます...</p>
+            </div>
+            
+            <div id="content-container" class="hidden">
+                <h2 class="section-title">お客様情報</h2>
+                
+                <div id="error-message" class="error-message hidden"></div>
+                <div id="success-message" class="success-message hidden"></div>
+                
+                <form id="customer-form">
+                    <div class="form-group">
+                        <label class="form-label" for="customer-name">
+                            お名前 <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="customer-name" 
+                            class="form-input" 
+                            placeholder="例: 田中 太郎"
+                            disabled
+                            required
+                        >
+                        <div class="field-error-message hidden" id="name-error"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            電話番号 <span class="required">*</span>
+                        </label>
+                        <div class="phone-group">
+                            <input 
+                                type="tel" 
+                                id="phone-1" 
+                                class="form-input phone-input" 
+                                placeholder="090"
+                                maxlength="4"
+                                disabled
+                                required
+                            >
+                            <span class="phone-separator">-</span>
+                            <input 
+                                type="tel" 
+                                id="phone-2" 
+                                class="form-input phone-input" 
+                                placeholder="1234"
+                                maxlength="4"
+                                disabled
+                                required
+                            >
+                            <span class="phone-separator">-</span>
+                            <input 
+                                type="tel" 
+                                id="phone-3" 
+                                class="form-input phone-input" 
+                                placeholder="5678"
+                                maxlength="4"
+                                disabled
+                                required
+                            >
+                        </div>
+                        <div class="field-error-message hidden" id="phone-error"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="car-model">
+                            車種 <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="car-model" 
+                            class="form-input" 
+                            placeholder="例: トヨタ プリウス"
+                            disabled
+                            required
+                        >
+                        <div class="field-error-message hidden" id="car-error"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input 
+                                type="checkbox" 
+                                id="is-light-vehicle" 
+                                class="checkbox-input"
+                                disabled
+                            >
+                            <label for="is-light-vehicle" class="checkbox-label">軽自動車</label>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="action-button" class="action-button edit-button">
+                        編集
+                    </button>
+                    
+                    <button type="button" id="cancel-button" class="action-button cancel-button hidden">
+                        キャンセル
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 更新完了モーダル -->
+    <div id="success-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="modal-title">更新完了</h3>
+            <p class="modal-message">お客様情報を更新しました。</p>
+            <button class="modal-button" onclick="closeWindow()">終了</button>
+        </div>
+    </div>
+
+    <script>
+        let isEditMode = false;
+        let currentUserData = null;
+        let currentUserId = null;
+        let originalData = {};
+
+        // ページ初期化
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // 共通処理で初期化
+                const authResult = await CommonLib.initializePageWithAuth('顧客情報編集');
+                
+                if (!authResult) {
+                    // リダイレクト中またはエラー
+                    return;
+                }
+                
+                currentUserId = authResult.userId;
+                currentUserData = authResult.customer;
+                
+                // 顧客情報を表示
+                displayCustomerInfo();
+                showContent();
+                
+            } catch (error) {
+                showError('ページの初期化に失敗しました: ' + error.message);
+                showContent();
+            }
+        });
+
+        /**
+         * 顧客情報を表示
+         */
+        function displayCustomerInfo() {
+            if (!currentUserData) return;
+            
+            document.getElementById('customer-name').value = currentUserData.customer_name;
+            
+            // 電話番号を分割
+            const phoneNumbers = currentUserData.customer_phone.split('-');
+            if (phoneNumbers.length === 3) {
+                document.getElementById('phone-1').value = phoneNumbers[0];
+                document.getElementById('phone-2').value = phoneNumbers[1];
+                document.getElementById('phone-3').value = phoneNumbers[2];
+            }
+            
+            document.getElementById('car-model').value = currentUserData.car_model || '';
+            document.getElementById('is-light-vehicle').checked = Boolean(currentUserData.is_light_vehicle);
+            
+            // 元データを保存
+            originalData = {
+                customer_name: currentUserData.customer_name,
+                customer_phone: currentUserData.customer_phone,
+                car_model: currentUserData.car_model || '',
+                is_light_vehicle: Boolean(currentUserData.is_light_vehicle)
+            };
+            
+            // 表示モードに設定
+            setDisplayMode();
+        }
+
+        /**
+         * 表示モードに設定
+         */
+        function setDisplayMode() {
+            isEditMode = false;
+            
+            // 全フィールドを無効化
+            const inputs = document.querySelectorAll('.form-input, .checkbox-input');
+            inputs.forEach(input => {
+                input.disabled = true;
+            });
+            
+            // ボタンを編集ボタンに変更
+            const actionButton = document.getElementById('action-button');
+            actionButton.textContent = '編集';
+            actionButton.className = 'action-button edit-button';
+            actionButton.onclick = setEditMode;
+            
+            // キャンセルボタンを非表示
+            document.getElementById('cancel-button').classList.add('hidden');
+            
+            // エラークリア
+            hideMessages();
+            clearAllErrors();
+        }
+
+        /**
+         * 編集モードに設定
+         */
+        function setEditMode() {
+            isEditMode = true;
+            
+            // 全フィールドを有効化
+            const inputs = document.querySelectorAll('.form-input, .checkbox-input');
+            inputs.forEach(input => {
+                input.disabled = false;
+            });
+            
+            // ボタンを保存ボタンに変更
+            const actionButton = document.getElementById('action-button');
+            actionButton.textContent = 'お客様情報を更新する';
+            actionButton.className = 'action-button save-button';
+            actionButton.onclick = updateCustomer;
+            
+            // キャンセルボタンを表示
+            const cancelButton = document.getElementById('cancel-button');
+            cancelButton.classList.remove('hidden');
+            cancelButton.onclick = cancelEdit;
+            
+            // 電話番号入力制御を設定
+            setupPhoneInputs();
+            
+            // 入力時エラークリア
+            setupInputValidation();
+        }
+
+        /**
+         * 編集キャンセル
+         */
+        function cancelEdit() {
+            // 元データに戻す
+            document.getElementById('customer-name').value = originalData.customer_name;
+            
+            const phoneNumbers = originalData.customer_phone.split('-');
+            if (phoneNumbers.length === 3) {
+                document.getElementById('phone-1').value = phoneNumbers[0];
+                document.getElementById('phone-2').value = phoneNumbers[1];
+                document.getElementById('phone-3').value = phoneNumbers[2];
+            }
+            
+            document.getElementById('car-model').value = originalData.car_model;
+            document.getElementById('is-light-vehicle').checked = originalData.is_light_vehicle;
+            
+            setDisplayMode();
+        }
+
+        /**
+         * 顧客情報更新
+         */
+        async function updateCustomer() {
+            if (!validateForm()) {
+                return;
+            }
+            
+            try {
+                const actionButton = document.getElementById('action-button');
+                actionButton.disabled = true;
+                actionButton.textContent = '更新中...';
+                
+                const updateData = getFormData();
+                
+                const response = await fetch(`${CommonLib.CONFIG.API_BASE}/api/customers/update/${currentUserId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                const result = await CommonLib.handleApiResponse(response);
+                
+                // 現在のデータを更新
+                currentUserData = { ...currentUserData, ...updateData };
+                originalData = { ...updateData };
+                
+                hideMessages();
+                showSuccess('お客様情報を更新しました');
+                
+                // 表示モードに戻す
+                setTimeout(() => {
+                    setDisplayMode();
+                    showModal('success-modal');
+                }, 1000);
+                
+            } catch (error) {
+                showError('更新に失敗しました: ' + error.message);
+                
+                const actionButton = document.getElementById('action-button');
+                actionButton.disabled = false;
+                actionButton.textContent = 'お客様情報を更新する';
+            }
+        }
+
+        /**
+         * フォームデータ取得
+         * @returns {Object} フォームデータ
+         */
+        function getFormData() {
+            const phone1 = document.getElementById('phone-1').value.trim();
+            const phone2 = document.getElementById('phone-2').value.trim();
+            const phone3 = document.getElementById('phone-3').value.trim();
+            
+            return {
+                customer_name: document.getElementById('customer-name').value.trim(),
+                customer_phone: `${phone1}-${phone2}-${phone3}`,
+                car_model: document.getElementById('car-model').value.trim(),
+                is_light_vehicle: document.getElementById('is-light-vehicle').checked
+            };
+        }
+
+        /**
+         * フォームバリデーション
+         * @returns {boolean} バリデーション結果
+         */
+        function validateForm() {
+            let isValid = true;
+            clearAllErrors();
+            
+            const name = document.getElementById('customer-name').value.trim();
+            if (!name) {
+                showFieldError('customer-name', 'name-error', 'お名前を入力してください');
+                isValid = false;
+            }
+            
+            const phone1 = document.getElementById('phone-1').value.trim();
+            const phone2 = document.getElementById('phone-2').value.trim();
+            const phone3 = document.getElementById('phone-3').value.trim();
+            
+            if (!phone1 || !phone2 || !phone3) {
+                showFieldError('phone-1', 'phone-error', '電話番号をすべて入力してください');
+                isValid = false;
+            } else if (!/^\d{3,4}$/.test(phone1) || !/^\d{4}$/.test(phone2) || !/^\d{4}$/.test(phone3)) {
+                showFieldError('phone-1', 'phone-error', '正しい電話番号を入力してください');
+                isValid = false;
+            }
+            
+            const carModel = document.getElementById('car-model').value.trim();
+            if (!carModel) {
+                showFieldError('car-model', 'car-error', '車種を入力してください');
+                isValid = false;
+            }
+            
+            return isValid;
+        }
+
+        /**
+         * フィールドエラー表示
+         * @param {string} fieldId - フィールドID
+         * @param {string} errorId - エラー要素ID
+         * @param {string} message - エラーメッセージ
+         */
+        function showFieldError(fieldId, errorId, message) {
+            const field = document.getElementById(fieldId);
+            const errorElement = document.getElementById(errorId);
+            
+            field.classList.add('field-error');
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+        }
+
+        /**
+         * 全エラークリア
+         */
+        function clearAllErrors() {
+            const fields = ['customer-name', 'phone-1', 'phone-2', 'phone-3', 'car-model'];
+            const errors = ['name-error', 'phone-error', 'car-error'];
+            
+            fields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) field.classList.remove('field-error');
+            });
+            
+            errors.forEach(errorId => {
+                const errorElement = document.getElementById(errorId);
+                if (errorElement) errorElement.classList.add('hidden');
+            });
+        }
+
+        /**
+         * 電話番号入力制御
+         */
+        function setupPhoneInputs() {
+            const phoneInputs = [
+                document.getElementById('phone-1'),
+                document.getElementById('phone-2'),
+                document.getElementById('phone-3')
+            ];
+
+            phoneInputs.forEach((input, index) => {
+                input.addEventListener('input', function(e) {
+                    let value = this.value.replace(/\D/g, '');
+                    const maxLength = index === 0 ? 4 : 4;
+                    if (value.length > maxLength) {
+                        value = value.slice(0, maxLength);
+                    }
+                    this.value = value;
+                    
+                    const expectedLength = index === 0 ? 3 : 4;
+                    if (value.length === expectedLength && index < phoneInputs.length - 1) {
+                        setTimeout(() => {
+                            phoneInputs[index + 1].focus();
+                        }, 10);
+                    }
+                    
+                    clearFieldError(this);
+                });
+
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && this.value === '' && index > 0) {
+                        setTimeout(() => {
+                            phoneInputs[index - 1].focus();
+                        }, 10);
+                    }
+                });
+            });
+        }
+
+        /**
+         * 入力時バリデーション設定
+         */
+        function setupInputValidation() {
+            ['customer-name', 'phone-1', 'phone-2', 'phone-3', 'car-model'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', () => clearFieldError(element));
+                }
+            });
+        }
+
+        /**
+         * フィールドエラークリア
+         * @param {HTMLElement} element - 対象要素
+         */
+        function clearFieldError(element) {
+            element.classList.remove('field-error');
+        }
+
+        /**
+         * エラーメッセージ表示
+         * @param {string} message - エラーメッセージ
+         */
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+            errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        /**
+         * 成功メッセージ表示
+         * @param {string} message - 成功メッセージ
+         */
+        function showSuccess(message) {
+            const successElement = document.getElementById('success-message');
+            successElement.textContent = message;
+            successElement.classList.remove('hidden');
+            successElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        /**
+         * メッセージを非表示
+         */
+        function hideMessages() {
+            document.getElementById('error-message').classList.add('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+        }
+
+        /**
+         * コンテンツ表示
+         */
+        function showContent() {
+            document.getElementById('loading-container').classList.add('hidden');
+            document.getElementById('content-container').classList.remove('hidden');
+        }
+
+        /**
+         * モーダル表示
+         * @param {string} modalId - モーダルID
+         */
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        /**
+         * ウィンドウを閉じる
+         */
+        function closeWindow() {
+            closeAndReturnToLine();
+        }
+
+        /**
+         * LINEトーク画面に戻る処理
+         */
+        function closeAndReturnToLine() {
+            try {
+                // Method 1: LIFF closeWindow (アプリ内の場合)
+                if (typeof liff !== 'undefined' && liff.isInClient()) {
+                    liff.closeWindow();
+                    return;
+                }
+                
+                // Method 2: 履歴戻る
+                if (window.history.length > 1) {
+                    window.history.back();
+                    return;
+                }
+                
+                // Method 3: タブを閉じる試行
+                try {
+                    window.close();
+                } catch (closeError) {
+                    // エラーは無視
+                }
+                
+                // Method 4: ユーザーへの案内
+                alert('このタブを閉じてLINEに戻ってください。');
+                
+            } catch (error) {
+                alert('このタブを閉じてLINEに戻ってください。');
+            }
+        }
+    </script>
+</body>
+</html>

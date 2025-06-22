@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>予約確認 - まるごとおまかせタイヤ保管</title>
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <!-- 共通処理 -->
+    <script src="./js/common.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .container {
+            flex: 1;
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #0cc0df;
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px 20px;
+        }
+
+        .status-badge {
+            background: #e3f2fd;
+            color: #0cc0df;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .reservation-details {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #0cc0df;
+        }
+
+        .reservation-details h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .contact-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+
+        .contact-info h4 {
+            font-size: 14px;
+            color: #856404;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .contact-info p {
+            font-size: 13px;
+            color: #856404;
+            line-height: 1.4;
+        }
+
+        .button-container {
+            padding: 0 5px;
+        }
+
+        .back-button {
+            width: 100%;
+            background: #0cc0df;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .back-button:hover {
+            background: #0ab5d1;
+            transform: translateY(-1px);
+        }
+
+        .back-button:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #dc3545;
+        }
+
+        .error-state h3 {
+            margin-bottom: 15px;
+        }
+
+        .error-state button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        /* ローディングアニメーション */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0cc0df;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                border-radius: 12px;
+            }
+            
+            .header {
+                padding: 25px 15px;
+            }
+            
+            .content {
+                padding: 25px 15px;
+            }
+            
+            .header h1 {
+                font-size: 18px;
+            }
+            
+            .message {
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <div class="header">
+            <h1>予約確認</h1>
+            <div class="header-subtitle">まるごとおまかせタイヤ保管</div>
+        </div>
+
+        <!-- コンテンツ -->
+        <div class="content">
+            <!-- ローディング状態 -->
+            <div id="loadingState" class="loading">
+                <div class="spinner"></div>
+                <p>予約情報を確認中...</p>
+            </div>
+
+            <!-- エラー状態 -->
+            <div id="errorState" class="error-state" style="display: none;">
+                <h3>エラーが発生しました</h3>
+                <p id="errorMessage">予約情報の取得に失敗しました</p>
+                <button onclick="window.location.reload()">再試行</button>
+            </div>
+
+            <!-- メインコンテンツ -->
+            <div id="mainContent" style="display: none;">
+                <div class="status-badge">
+                    既存予約あり
+                </div>
+
+                <div class="message">
+                    お客様は既に以下の日程で予約を承っています。<br>
+                    予約日を変更する場合は恐れ入りますが、上越メンテナンスまでお問い合わせください。
+                </div>
+
+                <!-- 予約詳細 -->
+                <div class="reservation-details">
+                    <h3>
+                        現在のご予約
+                    </h3>
+                    <div class="detail-item">
+                        <span class="detail-label">お名前</span>
+                        <span class="detail-value" id="customerName">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">予約日</span>
+                        <span class="detail-value" id="reservationDate">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">予約時間</span>
+                        <span class="detail-value" id="reservationTime">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">車両</span>
+                        <span class="detail-value" id="carModel">-</span>
+                    </div>
+                </div>
+
+                <!-- お問い合わせ情報 -->
+                <div class="contact-info">
+                    <h4>
+                        お問い合わせ先
+                    </h4>
+                    <p>
+                        <strong>上越メンテナンス</strong><br>
+                        予約変更・キャンセルについては<br>
+                        LINEトークまたはお電話にてお問い合わせください
+                    </p>
+                </div>
+
+                <!-- 戻るボタン -->
+                <div class="button-container">
+                    <button class="back-button" id="backButton">
+                        メニューに戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ページ初期化
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // 共通処理で認証のみ実行（顧客確認はスキップ）
+                const authResult = await CommonLib.initializePageAuth('予約確認');
+                
+                if (!authResult) {
+                    return;
+                }
+                
+                const userId = authResult.userId;
+                
+                // 予約情報取得
+                await loadReservationInfo(userId);
+                
+            } catch (error) {
+                showError('初期化に失敗しました: ' + error.message);
+            }
+        });
+
+        /**
+         * 予約情報読み込み
+         * @param {string} userId - ユーザーID
+         */
+        async function loadReservationInfo(userId) {
+            try {
+                const response = await fetch(`${CommonLib.CONFIG.API_BASE}/api/reservations/check/${userId}`);
+                const result = await CommonLib.handleApiResponse(response);
+                
+                if (!result.success) {
+                    throw new Error(result.error || '予約情報の取得に失敗しました');
+                }
+                
+                if (!result.has_reservation) {
+                    // 予約がない場合は予約画面にリダイレクト
+                    CommonLib.redirectToPage('./index.html', '予約');
+                    return;
+                }
+                
+                // 予約情報を表示
+                displayReservationInfo(result.reservation);
+                
+                // メインコンテンツ表示
+                showMainContent();
+                
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        /**
+         * 予約情報表示
+         * @param {Object} reservation - 予約情報
+         */
+        function displayReservationInfo(reservation) {
+            document.getElementById('customerName').textContent = reservation.customer_name || '-';
+            document.getElementById('reservationDate').textContent = reservation.date || '-';
+            document.getElementById('reservationTime').textContent = reservation.time || '-';
+            document.getElementById('carModel').textContent = reservation.car_model || '-';
+        }
+
+        /**
+         * メインコンテンツ表示
+         */
+        function showMainContent() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+        }
+
+        /**
+         * エラー表示
+         * @param {string} message - エラーメッセージ
+         */
+        function showError(message) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorState').style.display = 'block';
+        }
+
+        // 戻るボタンのイベントリスナー設定
+        document.getElementById('backButton').addEventListener('click', function() {
+            try {
+                if (typeof liff !== 'undefined' && liff.isInClient()) {
+                    liff.closeWindow();
+                } else {
+                    alert('LINEアプリからアクセスしてください。');
+                }
+            } catch (error) {
+                try {
+                    window.close();
+                } catch (fallbackError) {
+                    alert('このタブを閉じてLINEに戻ってください。');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

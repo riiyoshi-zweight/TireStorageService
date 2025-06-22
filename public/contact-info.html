@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お問い合わせ - まるごとおまかせタイヤ保管</title>
+    <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+    <!-- 共通処理 -->
+    <script src="./js/common.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 50%, #4dd0e1 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #00C2CC 0%, #0097A7 100%);
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 194, 204, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(180deg); }
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .contact-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 8px 32px rgba(0, 194, 204, 0.15);
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .contact-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #00C2CC, #4dd0e1, #00C2CC);
+            background-size: 200% 100%;
+            animation: gradient-flow 3s ease infinite;
+        }
+        
+        @keyframes gradient-flow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00695C;
+            margin-bottom: 32px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #00C2CC, #4dd0e1);
+            border-radius: 2px;
+        }
+        
+        .contact-section {
+            margin-bottom: 40px;
+            padding: 24px;
+            background: linear-gradient(135deg, #f0fdff 0%, #e6ffff 100%);
+            border-radius: 12px;
+            border: 1px solid #b2ebf2;
+            position: relative;
+        }
+        
+        .contact-section::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, rgba(0, 194, 204, 0.1), rgba(77, 208, 225, 0.1));
+            border-radius: 50%;
+        }
+        
+        .contact-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00695C;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .contact-icon {
+            font-size: 28px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #00C2CC, #4dd0e1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 194, 204, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .contact-details {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #00C2CC;
+            box-shadow: 0 2px 8px rgba(0, 194, 204, 0.1);
+        }
+        
+        .contact-item {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .contact-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .contact-label {
+            font-weight: bold;
+            color: #00695C;
+            min-width: 80px;
+        }
+        
+        .contact-value {
+            color: #333;
+            font-size: 15px;
+        }
+        
+        .phone-number {
+            font-size: 15px;
+            font-weight: bold;
+            color: #00C2CC;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .phone-number:hover {
+            color: #0097A7;
+        }
+        
+        .email-address {
+            font-size: 16px;
+            color: #00C2CC;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .email-address:hover {
+            color: #0097A7;
+        }
+        
+        .address-text {
+            color: #555;
+            line-height: 1.8;
+        }
+        
+        .store-hours {
+            background: linear-gradient(135deg, #fff9c4 0%, #f4f4f4 100%);
+            border: 1px solid #ffeb3b;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        
+        .hours-title {
+            font-weight: bold;
+            color: #f57f17;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .hours-list {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 32px;
+            flex-wrap: wrap;
+        }
+        
+        .action-button {
+            flex: 1;
+            min-width: 140px;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .call-button {
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            color: white;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        
+        .call-button:hover {
+            background: linear-gradient(135deg, #388E3C, #4CAF50);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+        }
+        
+        .email-button {
+            background: linear-gradient(135deg, #00C2CC, #4dd0e1);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 194, 204, 0.3);
+        }
+        
+        .email-button:hover {
+            background: linear-gradient(135deg, #0097A7, #00C2CC);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 194, 204, 0.4);
+        }
+        
+        .close-button {
+            background: linear-gradient(135deg, #757575, #9E9E9E);
+            color: white;
+            box-shadow: 0 4px 12px rgba(117, 117, 117, 0.3);
+        }
+        
+        .close-button:hover {
+            background: linear-gradient(135deg, #424242, #757575);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(117, 117, 117, 0.4);
+        }
+        
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .floating-shape {
+            position: absolute;
+            background: linear-gradient(135deg, rgba(0, 194, 204, 0.1), rgba(77, 208, 225, 0.1));
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .floating-shape:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        
+        .floating-shape:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            top: 60%;
+            right: 15%;
+            animation-delay: 2s;
+        }
+        
+        .floating-shape:nth-child(3) {
+            width: 60px;
+            height: 60px;
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px) rotate(0deg);
+                opacity: 0.7;
+            }
+            50% {
+                transform: translateY(-20px) rotate(180deg);
+                opacity: 1;
+            }
+        }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 480px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .contact-card {
+                padding: 20px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .action-button {
+                min-width: auto;
+            }
+            
+            .contact-title {
+                font-size: 18px;
+            }
+            
+            .section-title {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 浮遊する装飾要素 -->
+    <div class="floating-shapes">
+        <div class="floating-shape"></div>
+        <div class="floating-shape"></div>
+        <div class="floating-shape"></div>
+    </div>
+    
+    <div class="header">
+        <h1>お問い合わせ</h1>
+    </div>
+    
+    <div class="container">
+        <div class="contact-card">
+            <h2 class="section-title">お気軽にお問い合わせください</h2>
+            
+            <!-- 電話でのお問い合わせ -->
+            <div class="contact-section">
+                <div class="contact-title">
+                    <div class="contact-icon">📞</div>
+                    電話でのお問い合わせ
+                </div>
+                <div class="contact-details">
+                    <div class="contact-item">
+                        <span class="contact-label">電話番号:</span>
+                        <a href="tel:0120-524-0444" class="phone-number">025-524-0444</a>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">受付時間:</span>
+                        <span class="contact-value">9:00 - 16:00</span>
+                    </div>
+                    <div class="store-hours">
+                        <div class="hours-title">
+                            営業時間のご案内
+                        </div>
+                        <div class="hours-list">
+                            月曜日 - 金曜日: 9:00 - 16:00<br>
+                            土曜日・日曜日・祝日: お休み<br>
+                            <small>※緊急時は留守番電話にメッセージをお残しください</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- メールでのお問い合わせ -->
+            <div class="contact-section">
+                <div class="contact-title">
+                    <div class="contact-icon">📧</div>
+                    メールでのお問い合わせ
+                </div>
+                <div class="contact-details">
+                    <div class="contact-item">
+                        <span class="contact-label">メール:</span>
+                        <a href="mailto:info@j-mente.com" class="email-address">info@j-mente.com</a>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">返信時間:</span>
+                        <span class="contact-value">1営業日以内にご返信いたします</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 店舗情報 -->
+            <div class="contact-section">
+                <div class="contact-title">
+                    <div class="contact-icon">🏪</div>
+                    店舗情報
+                </div>
+                <div class="contact-details">
+                    <div class="contact-item">
+                        <span class="contact-label">店舗名:</span>
+                        <span class="contact-value">ミスタータイヤマン高田店</span>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">住所:</span>
+                        <div class="contact-value address-text">
+                            〒943-0827<br>
+                            新潟県上越市栄町５−５
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">アクセス:</span>
+                        <span class="contact-value">JR高田駅から車で約5分</span>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">地図:</span>
+                        <span class="contact-value">
+                            <a href="https://www.google.com/maps/search/?api=1&query=943-0827+新潟県上越市栄町5-5" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               style="color: #00C2CC; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; transition: color 0.3s;">
+                                Googleマップで見る
+                            </a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- アクションボタン -->
+            <div class="action-buttons">
+                <a href="tel:025-524-0444" class="action-button call-button">
+                    電話をかける
+                </a>
+                <a href="mailto:info@j-mente.com" class="action-button email-button">
+                    メールを送る
+                </a>
+                <button onclick="closeWindow()" class="action-button close-button">
+                    <span>✕</span>
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ページ初期化（お問い合わせ画面では顧客確認不要）
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // LIFF初期化のみ実行（顧客確認はスキップ）
+                await initializeLiffOnly();
+                
+            } catch (error) {
+                // エラーが発生してもお問い合わせページは表示を続行
+            }
+        });
+
+        /**
+         * LIFF初期化のみ実行（顧客確認なし）
+         */
+        async function initializeLiffOnly() {
+            try {
+                if (typeof liff === 'undefined') {
+                    return;
+                }
+
+                // LIFF初期化
+                if (!liff.isReady()) {
+                    await liff.init({ liffId: CommonLib.CONFIG.LIFF_ID });
+                }
+
+                // ログイン確認（必須ではない）
+                if (!liff.isLoggedIn()) {
+                    return;
+                }
+
+            } catch (error) {
+                // エラーでもお問い合わせページは利用可能
+            }
+        }
+
+        /**
+         * ウィンドウを閉じる
+         */
+        function closeWindow() {
+            try {
+                if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
+                    liff.closeWindow();
+                } else {
+                    window.close();
+                }
+            } catch (error) {
+                // フォールバック
+                try {
+                    window.close();
+                } catch (fallbackError) {
+                    alert('このタブを手動で閉じてください。');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
