@@ -4,15 +4,25 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-// 環境変数からパスを取得、なければデフォルト値を使用
-const dbPath = process.env.DATABASE_URL || 'tire_storage.db';
+// Render環境かどうかを判定
+const isRender = process.env.RENDER === 'true';
+
+// データベースパスの設定
+let dbPath;
+if (isRender && process.env.NODE_ENV === 'production') {
+    // Render本番環境では永続ディスクを使用
+    dbPath = '/data/tire_storage.db';
+} else {
+    // 開発環境では環境変数またはデフォルトパスを使用
+    dbPath = process.env.DATABASE_URL || 'tire_storage.db';
+}
 
 // 絶対パスに変換
 const DB_PATH = path.isAbsolute(dbPath) 
     ? dbPath 
     : path.join(__dirname, '..', dbPath);
 
-// データベースファイルのディレクトリを確認・作成
+// ディレクトリの存在確認と作成
 const dbDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
@@ -27,14 +37,8 @@ const database = new sqlite3.Database(DB_PATH, (err) => {
     }
 });
 
-// Promise ベースのラッパー関数
+// Promise ベースのラッパー関数（以下は変更なし）
 const db = {
-    /**
-     * SELECT文（単一行）を実行
-     * @param {string} query - SQLクエリ
-     * @param {Array} params - パラメータ
-     * @returns {Promise<Object>} 結果行
-     */
     get: (query, params = []) => {
         return new Promise((resolve, reject) => {
             database.get(query, params, (err, row) => {
@@ -47,12 +51,6 @@ const db = {
         });
     },
 
-    /**
-     * SELECT文（複数行）を実行
-     * @param {string} query - SQLクエリ
-     * @param {Array} params - パラメータ
-     * @returns {Promise<Array>} 結果行の配列
-     */
     all: (query, params = []) => {
         return new Promise((resolve, reject) => {
             database.all(query, params, (err, rows) => {
@@ -65,12 +63,6 @@ const db = {
         });
     },
 
-    /**
-     * INSERT, UPDATE, DELETE文を実行
-     * @param {string} query - SQLクエリ
-     * @param {Array} params - パラメータ
-     * @returns {Promise<Object>} 実行結果
-     */
     run: (query, params = []) => {
         return new Promise((resolve, reject) => {
             database.run(query, params, function(err) {
@@ -86,26 +78,14 @@ const db = {
         });
     },
 
-    /**
-     * トランザクション開始
-     * @returns {Promise<void>}
-     */
     beginTransaction: () => {
         return db.run('BEGIN TRANSACTION');
     },
 
-    /**
-     * コミット
-     * @returns {Promise<void>}
-     */
     commit: () => {
         return db.run('COMMIT');
     },
 
-    /**
-     * ロールバック
-     * @returns {Promise<void>}
-     */
     rollback: () => {
         return db.run('ROLLBACK');
     }
