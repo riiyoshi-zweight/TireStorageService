@@ -709,31 +709,34 @@
             }
         }
 
-        // カレンダーデータを取得（修正版）
+        // カレンダーデータを取得（修正版：管理者用APIを使用）
         async function fetchCalendarData() {
             try {
                 console.log('カレンダーデータ取得中...');
-                
-                const startDate = formatDateLocal(currentWeekStart); // 修正: toISOString()を削除
+
+                const startDate = formatDateLocal(currentWeekStart);
                 const endDate = new Date(currentWeekStart);
                 endDate.setDate(endDate.getDate() + 6);
-                const endDateStr = formatDateLocal(endDate); // 修正: toISOString()を削除
-                
-                console.log('取得期間:', { startDate, endDateStr }); // デバッグログ追加
-                
-                // 利用可能時間枠を取得
-                const availableResponse = await AdminCommonLib.authenticatedFetch(`/api/available-dates?start_date=${startDate}&end_date=${endDateStr}`);
-                currentData.available = Array.isArray(availableResponse) ? availableResponse : (availableResponse.data || []);
-                
-                // 予約済み時間枠を取得
-                const reservedResponse = await AdminCommonLib.authenticatedFetch(`/api/admin/reservations?start_date=${startDate}&end_date=${endDateStr}`);
-                currentData.reserved = Array.isArray(reservedResponse) ? reservedResponse : (reservedResponse.data || []);
-                
+                const endDateStr = formatDateLocal(endDate);
+
+                console.log('取得期間:', { startDate, endDateStr });
+
+                // 管理者用APIで利用可能枠と予約済み枠を一括取得（件数制限なし）
+                const response = await AdminCommonLib.authenticatedFetch(`/api/admin/available-dates?start_date=${startDate}&end_date=${endDateStr}`);
+
+                if (response.success && response.data) {
+                    currentData.available = response.data.available || [];
+                    currentData.reserved = response.data.reserved || [];
+                } else {
+                    currentData.available = [];
+                    currentData.reserved = [];
+                }
+
                 console.log('カレンダーデータ取得完了:', {
                     available: currentData.available.length,
                     reserved: currentData.reserved.length
                 });
-                
+
             } catch (error) {
                 console.error('カレンダーデータ取得失敗:', error);
                 currentData = { available: [], reserved: [], allSlots: [] };
