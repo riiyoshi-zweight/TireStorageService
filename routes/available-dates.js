@@ -37,7 +37,7 @@ router.get('/settings', async (req, res) => {
  */
 router.get('/', async (req, res) => {
     try {
-        const { date, limit = 100, offset = 0 } = req.query;
+        const { date, limit = 10000, offset = 0 } = req.query;
         
         // 予約済みの日程を除外するクエリ
         let query = `
