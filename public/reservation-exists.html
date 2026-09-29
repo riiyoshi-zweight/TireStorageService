@@ -406,19 +406,7 @@
 
         // 戻るボタンのイベントリスナー設定
         document.getElementById('backButton').addEventListener('click', function() {
-            try {
-                if (typeof liff !== 'undefined' && liff.isInClient()) {
-                    liff.closeWindow();
-                } else {
-                    alert('LINEアプリからアクセスしてください。');
-                }
-            } catch (error) {
-                try {
-                    window.close();
-                } catch (fallbackError) {
-                    alert('このタブを閉じてLINEに戻ってください。');
-                }
-            }
+            window.location.href = './menu.html';
         });
     </script>
 </body>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <meta name="format-detection" content="telephone=no,date=no,address=no,email=no">
+    <title>メニュー - まるごとおまかせタイヤ保管</title>
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <!-- 共通処理 -->
+    <script src="./js/common.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #333;
+        }
+
+        .header {
+            background: #0cc0df;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 13px;
+            margin-top: 6px;
+            opacity: 0.9;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px 16px;
+            flex: 1;
+        }
+
+        .menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: white;
+            border-radius: 12px;
+            padding: 18px 16px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid #0cc0df;
+            transition: transform 0.1s, box-shadow 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .menu-item:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+        }
+
+        .menu-icon {
+            flex-shrink: 0;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: #e6f9fc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 26px;
+        }
+
+        .menu-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .menu-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .menu-description {
+            font-size: 13px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .menu-arrow {
+            flex-shrink: 0;
+            color: #0cc0df;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            padding: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>まるごとおまかせタイヤ保管</h1>
+        <p>ご希望のメニューをお選びください</p>
+    </div>
+
+    <div class="container">
+        <nav>
+            <ul class="menu-list">
+                <li>
+                    <a href="./index.html" class="menu-item">
+                        <div class="menu-icon">📅</div>
+                        <div class="menu-text">
+                            <div class="menu-title">予約</div>
+                            <div class="menu-description">ご来店日時を予約します</div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </a>
+                </li>
+                <li>
+                    <a href="./reservation-check.html" class="menu-item">
+                        <div class="menu-icon">🔍</div>
+                        <div class="menu-text">
+                            <div class="menu-title">予約確認</div>
+                            <div class="menu-description">現在のご予約内容を確認します</div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </a>
+                </li>
+                <li>
+                    <a href="./customer-info-edit.html" class="menu-item">
+                        <div class="menu-icon">👤</div>
+                        <div class="menu-text">
+                            <div class="menu-title">お客様情報の編集</div>
+                            <div class="menu-description">お名前・電話番号・車種を変更します</div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </a>
+                </li>
+                <li>
+                    <a href="./contact-info.html" class="menu-item">
+                        <div class="menu-icon">📞</div>
+                        <div class="menu-text">
+                            <div class="menu-title">お問い合わせ</div>
+                            <div class="menu-description">電話・メール・店舗情報</div>
+                        </div>
+                        <div class="menu-arrow">›</div>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="footer">ミスタータイヤマン高田店</div>
+
+    <script>
+        // ページ初期化（メニュー画面では顧客確認不要）
+        document.addEventListener('DOMContentLoaded', async function() {
+            // mode指定付きでアクセスされた場合は、従来どおり各画面へ直接遷移
+            const displayMode = CommonLib.getDisplayMode();
+            if (displayMode === 'reservation') {
+                CommonLib.redirectToPage('./index.html', '予約');
+                return;
+            }
+            if (displayMode) {
+                CommonLib.redirectToSpecialPage(displayMode);
+                return;
+            }
+
+            // LIFF初期化（失敗してもメニューは表示を続行）
+            await CommonLib.initializeLiff();
+        });
+    </script>
+</body>
+</html>

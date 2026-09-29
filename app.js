@@ -16,7 +16,8 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.static('public'));
+// index: false により「/」はメニュー画面のルートで処理する
+app.use(express.static('public', { index: false }));
 
 // データベース接続確認
 try {
@@ -48,13 +49,13 @@ app.use('/api/admin', adminAuthRouter);
 app.use('/api/admin', adminAvailableDatesRouter);
 app.use('/api/admin/reservations-list', adminReservationsListRouter);
 
-// フロントエンドルート
+// フロントエンドルート（入口はメニュー画面）
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'menu.html'));
 });
 
 app.get('/liff', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'menu.html'));
 });
 
 // 管理者ページルート

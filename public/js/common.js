@@ -112,7 +112,36 @@ if (isAdminPage()) {
          * 設定初期化
          */
         init() {
-            // 初期化処理（設定確認のみ）
+            this.showMenuLink();
+        },
+
+        /**
+         * 「メニューに戻る」リンクを画面上部に表示（メニュー画面以外）
+         */
+        showMenuLink() {
+            const filename = window.location.pathname.split('/').pop();
+            const menuPages = ['', 'liff', 'menu.html'];
+
+            if (menuPages.includes(filename) || document.getElementById('menuLinkBar')) {
+                return;
+            }
+
+            const bar = document.createElement('div');
+            bar.id = 'menuLinkBar';
+            bar.innerHTML = `
+                <a href="./menu.html" style="
+                    display: block;
+                    background: white;
+                    color: #0097A7;
+                    padding: 14px 16px;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-size: 16px;
+                    font-weight: 600;
+                    text-decoration: none;
+                    border-bottom: 1px solid #e9ecef;
+                ">‹ メニューに戻る</a>
+            `;
+            document.body.insertBefore(bar, document.body.firstChild);
         },
 
         /**
@@ -245,10 +274,17 @@ if (isAdminPage()) {
          */
         async initializeLiff() {
             try {
+                // ローカル開発環境ではLINEログインを行わない（デモユーザーで動作）
+                const hostname = window.location.hostname;
+                if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                    this.isLineEnvironment = false;
+                    return false;
+                }
+
                 if (typeof liff === 'undefined') {
                     throw new Error('LIFF SDK not loaded');
                 }
-                
+
                 // LIFF初期化
                 await liff.init({
                     liffId: this.CONFIG.LIFF_ID
